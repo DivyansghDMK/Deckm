@@ -1,0 +1,7 @@
+<svg width="560" height="100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="g2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <polyline points="0,50 30,50 45,50 55,8 68,92 78,50 120,50 150,50 160,8 173,92 183,50 225,50 255,50 265,8 278,92 288,50 330,50 360,50 370,8 383,92 393,50 435,50 465,50 475,8 488,92 498,50 560,50"
+      fill="none" stroke="FF7A1A" stroke-width="2.2" stroke-linecap="round" filter="url(#g2)" opacity="0.95"/>
+  </svg>
