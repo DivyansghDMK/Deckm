@@ -1,2097 +1,1330 @@
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Html, RoundedBox } from '@react-three/drei';
-import { motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
+import React, { useRef, useState, useEffect } from 'react';
 import {
-  Activity,
-  ArrowRight,
-  BatteryCharging,
-  Bluetooth,
-  CheckCircle2,
-  ChevronRight,
-  Clock3,
-  FileText,
-  Heart,
-  Monitor,
-  ShieldCheck,
-  Sparkles,
-  TabletSmartphone,
-  Users,
-  Workflow,
-  Globe,
-  Printer,
+  motion, useInView, useScroll, useTransform,
+} from 'framer-motion';
+import {
+  Bluetooth, Usb, Monitor, Smartphone, Activity, Clock, Shield,
+  Zap, Cloud, ChevronDown, ArrowRight, Check, Radio, Brain,
+  FileText, BarChart3, Battery, Wind, Moon, Gauge, Heart,
+  Wifi, Layers, Menu, X, Download,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
-import rhythmFrontV2 from './assets/extracted/rhythm_ultramax_v2.png';
-import rhythmFrontV3 from './assets/extracted/rhythm_ultramax_v3.png';
-import ecgTabletop from './assets/extracted/ecg_tabletop.jpg';
-import sleepSense from './assets/extracted/sleepsense_new.webp';
-import cardioxAppDashboard from './assets/extracted/cardiox_app_dashboard.jpeg';
-import cardioxPlaystore from './assets/extracted/cardiox_playstore.png';
-import ecg12ChannelNew from './assets/extracted/ecg12channel_v3.png';
-import ecg3Channel from './assets/extracted/ecg3channel_new.png';
-import vt80stImage from './assets/extracted/vt80st_v3.jpg';
-import vt60stImage from './assets/extracted/vt60st_v2.jpg';
-import pdfImg349 from './assets/extracted/pdf_img_3_49.png';
-import pdfImg347 from './assets/extracted/pdf_img_3_47.jpeg';
-import pdfImg344 from './assets/extracted/pdf_img_3_44.png';
-import pdfImg231 from './assets/extracted/pdf_img_2_31.jpeg';
-import pdfImg16 from './assets/extracted/pdf_img_1_6.jpeg';
-import pdfImg18 from './assets/extracted/pdf_img_1_8.jpeg';
-import pdfImg110 from './assets/extracted/pdf_img_1_10.jpeg';
-import pdfImg225 from './assets/extracted/pdf_img_2_25.jpeg';
-import pdfImg112 from './assets/extracted/pdf_img_1_12.png';
-import pdfImg227 from './assets/extracted/pdf_img_2_27.jpeg';
-import pdfImg228 from './assets/extracted/pdf_img_2_28.jpeg';
-import pdfImg230 from './assets/extracted/pdf_img_2_30.jpeg';
-import pdfImg14 from './assets/extracted/pdf_img_1_4.jpeg';
-import pdfImg069 from './assets/extracted/pdf_img_0_69.png';
-import pdfImg067 from './assets/extracted/pdf_img_0_67.jpeg';
-import whatsappImageCardiox from './assets/whatsapp_image_cardiox.jpeg';
-import cardioxDashboard from './assets/cardiox_dashboard.png';
-import cardiox12LeadEcg from './assets/cardiox_12lead_ecg.png';
-import ecg12channelTabletop from './assets/ecg12channel_tabletop.png';
-import cardioxHolterSoftware from './assets/cardiox_holter_software.png';
+// ─── Image Imports ────────────────────────────────────────────────────────────
+import rhythmUltraMaxImg from './assets/extracted/pdf_img_3_47.jpeg';
+import mobileAppImg from './assets/extracted/pdf_img_0_69.png';
+import cardioxDashImg from './assets/cardiox_dashboard.png';
+import cardiox12LeadImg from './assets/cardiox_12lead_ecg.png';
+import holterSoftImg from './assets/cardiox_holter_software.png';
+import holterHwImg from './assets/whatsapp_image_cardiox.jpeg';
+import ecg12ChImg from './assets/ecg12channel_tabletop.png';
+import ecg3ChImg from './assets/extracted/ecg3channel.jpg';
+import bipapImg from './assets/extracted/bipap_new.jpg';
+import sleepSenseImg from './assets/extracted/sleepsense_new.png';
+import vt60stImg from './assets/extracted/vt60st_final.jpg';
+import vt80stImg from './assets/extracted/vt80st_v2.jpg';
 
-const navLinks = [
-  { href: '#devices', label: 'Devices' },
-  { href: '#software', label: 'Software' },
-  { href: '#pdf-info', label: 'PDF Info' },
-  { href: '#program', label: '6 Month Program' },
-  { href: '#product-proof', label: 'Product Proof' },
-  { href: '#features', label: 'Features' },
-];
+// ═══════════════════════════════════════════════════════════════════════════════
+// ANIMATION VARIANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+const fadeUp = { hidden: { opacity: 0, y: 48 }, visible: { opacity: 1, y: 0, transition: { duration: .7, ease: [.22, 1, .36, 1] } } };
+const slideLeft = { hidden: { opacity: 0, x: -60 }, visible: { opacity: 1, x: 0, transition: { duration: .7, ease: [.22, 1, .36, 1] } } };
+const slideRight = { hidden: { opacity: 0, x: 60 }, visible: { opacity: 1, x: 0, transition: { duration: .7, ease: [.22, 1, .36, 1] } } };
+const scaleIn = { hidden: { opacity: 0, scale: .88 }, visible: { opacity: 1, scale: 1, transition: { duration: .5, ease: [.34, 1.56, .64, 1] } } };
+const stagger = (d = 0) => ({ hidden: {}, visible: { transition: { staggerChildren: .1, delayChildren: d } } });
 
-const heroStats = [
-  { value: '1,000', label: 'samples/sec/channel' },
-  { value: '99.9%', label: 'accuracy target' },
-  { value: '16', label: 'hours recording' },
-  { value: '80+', label: 'AI patterns' },
-];
-
-const proofMarkers = [
-  '24-bit clinical precision',
-  'Fluke tested validation',
-  'Cloud-enabled reporting',
-  'Built for hospital demos',
-];
-
-const deviceCards = [
-  {
-    title: 'Rhythm UltraMax',
-    subtitle: 'Portable 12-Lead ECG System',
-    quote: 'Built for premium clinical mobility.',
-    image: pdfImg347,
-  },
-  {
-    title: '12 Channel ECG',
-    subtitle: 'Hospital Tabletop Diagnostic System',
-    quote: 'Built to feel serious, clear, and fast in a clinic.',
-    image: ecg12channelTabletop,
-  },
-  {
-    title: '3 Channel ECG',
-    subtitle: 'Entry-Level Clinical ECG System',
-    quote: 'Designed around operational realities.',
-    image: ecg3Channel,
-  },
-  {
-    title: 'BiPAP VT20 ST',
-    subtitle: 'Premium Respiratory Therapy',
-    quote: 'Therapy that feels natural and calm.',
-    image: vt80stImage,
-  },
-  {
-    title: 'BiPAP VT60 ST',
-    subtitle: 'Adaptive Ventilation Platform',
-    quote: 'Strong support without added effort.',
-    image: vt60stImage,
-  },
-  {
-    title: 'Rhythm UltraMax Pro',
-    subtitle: 'Live Review and Reporting Workflow',
-    quote: 'Built to turn traces into decisions quickly.',
-    image: cardioxAppDashboard,
-  },
-];
-
-const productShowcases = [
-  {
-    id: 'portable-ecg',
-    kicker: 'Portable ECG',
-    title: 'Rhythm UltraMax · ',
-    subtitle: 'Portable 12-Lead ECG System',
-    image: pdfImg347,
-    images: [
-      { src: pdfImg347, label: 'Rhythm UltraMax Device', desc: 'Simultaneous 12-Lead ECG physical acquisition hardware' },
-      { src: pdfImg069, label: 'Mobile Companion App', desc: 'Real-time telemetry and cloud sync app on smartphones' },
-      { src: cardioxDashboard, label: 'CardioX Dashboard Integration', desc: 'Direct desktop integration for clinicians and patient reviews' },
-      { src: cardiox12LeadEcg, label: 'CardioX 12-Lead Software', desc: 'Full diagnostic monitoring terminal and review software' }
-    ],
-    description:
-      'Portable 12-lead ECG built for field deployment, emergency response, and mobile diagnostics. Designed as a hardware acquisition layer, it transmits live traces to the mobile companion app and directly to the CardioX desktop suite.',
-    quote: 'Built for Mobility. Trusted for Clinical Decisions.',
-    problem: {
-      title: 'The Problem We Saw',
-      text: 'Most portable ECG systems fail outside controlled hospital environments. Clinicians repeatedly face consumer-grade devices that clinicians cannot rely on, poor waveform quality, delayed ECG reports that slow treatment decisions, fragmented software, difficult doctor review workflows, and bulky systems that cannot move easily.',
-      points: [
-        'Consumer-grade devices that clinicians cannot rely on.',
-        'Poor waveform quality',
-        'Delayed ECG reports that slow treatment decisions.',
-        'Fragmented software',
-        'Difficult doctor review workflows',
-        'Bulky systems that cannot move easily',
-      ],
-      others: 'Existing systems were either portable but limited OR clinically strong but operationally heavy.',
-    },
-    missing: {
-      title: 'What Others Are Missing',
-      text: 'Most ECG systems still separate acquisition, analysis, reporting, and doctor review into disconnected workflows. Many devices lack simultaneous 12-lead capture, provide limited arrhythmia analysis, cannot generate fast reports, and break workflow between mobile and desktop review.',
-      points: [
-        'Real deployment movement',
-        'Cloud-connected review',
-        'Fast field diagnostics',
-      ],
-    },
-    built: {
-      title: 'What We Built Instead',
-      text: 'Rhythm UltraMax combines simultaneous 12-lead ECG, 24-bit precision acquisition, HRV testing, automated arrhythmia detection to assist faster clinical review, cloud-connected reporting, and mobile-to-desktop workflow into one portable clinical ecosystem.',
-      mobile: [
-        'Full ECG reports under 10 seconds',
-        'HRV testing',
-        'Rapid screening of common rhythm disorders on mobile.',
-        'Fast waveform review',
-      ],
-      desktop: [
-        'Detects 30+ clinically significant rhythm abnormalities',
-        'Hyperkalemia screening',
-        'Waveform inspection tools',
-        'Magnifier and caliper analysis',
-        'Advanced clinical review workflow',
-      ],
-    },
-    better: {
-      title: 'Why Rhythm UltraMax Performs Better',
-      points: [
-        { title: 'Clinical-grade precision', text: '24-bit ADC with simultaneous 12-lead ECG at 1000 SPS/channel.' },
-        { title: 'Cloud-Connected Intelligence', text: 'Real-time sync with Rhythm UltraMax Pro cloud for instant remote review.' },
-        { title: 'Better doctor usability', text: 'Desktop waveform analysis with measurements, annotations, and detailed review.' },
-        { title: 'Connected ecosystem', text: 'Device → Mobile → Cloud → Cardiox Desktop → Report.' },
-        { title: 'Built for movement', text: 'Designed for ambulances, camps, clinics, bedside care, and outreach deployment.' },
-        { title: 'Future-ready platform', text: 'Holter monitoring and expanded AI diagnostics already in development.' },
-      ],
-    },
-    specs: [
-      ['Lead mode', 'Simultaneous 12-lead ECG'],
-      ['Sampling', '1,000 samples per second per channel'],
-      ['ADC resolution', '24-bit'],
-      ['Connectivity', 'BLE 5.0, USB, Cloud Sync (Standard)'],
-      ['Battery life', '8 hours continuous acquisition (4000 mAh)'],
-      ['Weight', '298 grams'],
-      ['Standards', 'IEC 60601 compliant design'],
-      ['Report format', 'PDF / WhatsApp / Email / Cloud Link'],
-    ],
-    workflow: [
-      { title: 'Record', text: 'Full simultaneous 12-lead ECG at the point of care.' },
-      { title: 'Review', text: 'Fast operator checks inside Rhythm UltraMax Pro.' },
-      { title: 'Sync', text: 'Push the trace to cloud-connected storage.' },
-      { title: 'Report', text: 'Generate a shareable clinical PDF quickly.' },
-      { title: 'Doctor', text: 'Review on desktop with measurements and interpretation tools.' },
-    ],
-    useCases: [
-      { title: 'Emergency response', text: 'Rapid acquisition during urgent care.' },
-      { title: 'Ambulance ECG', text: 'Pre-hospital ECG capture and quick sharing.' },
-      { title: 'Rural outreach', text: 'Mobile screening where infrastructure is limited.' },
-      { title: 'Clinics and OPDs', text: 'Fast diagnosis in smaller practices and clinics.' },
-      { title: 'Home follow-up', text: 'Remote rhythm review after discharge.' },
-      { title: 'Occupational health', text: 'On-site checks in factories and camps.' },
-    ],
-    expansion: {
-      title: 'Future Expansion',
-      points: [
-        { title: '24–72 Hour Holter Monitoring', text: 'Continuous ambulatory ECG monitoring for long-duration rhythm analysis and cardiac event detection.' },
-        { title: 'Advanced AI Analysis', text: 'Expanded diagnostic intelligence and deeper arrhythmia interpretation workflows.' },
-      ],
-    },
-  },
-  {
-    id: 'cardiox-rhythmpro',
-    kicker: 'ECG & Holter Analysis Suite',
-    title: 'CardioX (RhythmPro)',
-    subtitle: 'Clinical-Grade Real-Time ECG Monitoring & AI-Powered Cardiac Diagnostics',
-    image: whatsappImageCardiox,
-    images: [
-      { src: cardioxDashboard, label: 'CardioX Diagnostic Terminal', desc: 'Desktop interface for patient history and ECG records' },
-      { src: cardiox12LeadEcg, label: '12-Lead Live Trace Monitor', desc: 'Hardware-accelerated drawing layout' },
-      { src: cardioxHolterSoftware, label: 'Holter Analysis Software', desc: 'Advanced ECG & Holter analysis suite showing beat template clustering, Lorenz scatter plots, and ST mapping' },
-      { src: whatsappImageCardiox, label: 'Holter Hardware Device', desc: 'Companion ambulatory Holter recorder for long-term clinical monitoring' }
-    ],
-    description:
-      'CardioX is a medical-grade, cross-platform software application engineered for real-time twelve-lead ECG acquisition, long-term Holter analysis, and automated diagnostic reporting. Key metrics: 1000 SPS/channel acquisition, 24-bit ADC precision, <10 second ECG report generation, simultaneous 12-lead capture, 30+ arrhythmia analysis tools, HRV analysis, and Hyperkalemia screening support. While it acts as the primary software review terminal for the Rhythm UltraMax handheld ECG, CardioX also supports comprehensive long-term Holter monitoring when paired with dedicated ambulatory Holter hardware.',
-    quote: 'Real-Time ECG Review Without Workflow Interruptions.',
-    problem: {
-      title: 'The Problem We Saw',
-      text: 'Traditional ECG interpretation and Holter analysis software is slow, single-platform, runs poorly on low-spec hardware, and lacks modern AI assistance or automated reporting.',
-      points: [
-        'Slow ECG processing delays diagnosis.',
-        'Fragmented desktop & mobile workflows',
-        'Manual, time-consuming beat clustering',
-        'No built-in clinical AI assistance',
-        'Risk of losing patient data during poor internet connectivity.',
-      ],
-      others: 'Existing clinical software often forces hospitals to choose between modern AI features and offline reliability.',
-    },
-    missing: {
-      title: 'What Others Are Missing',
-      text: 'Most ECG systems do not support long-term ambulatory Holter monitoring, lack sub-pixel hardware acceleration, have weak security signatures, and lack automated multi-page PDF reports.',
-      points: [
-        'Adaptive noise-mitigation (DSP)',
-        'Smooth real-time waveform rendering.',
-        'Flexible lead layouts (e.g. 12x1, 3x4 + 1)',
-        'Reliable offline operation with automatic synchronization.',
-      ],
-    },
-    built: {
-      title: 'What We Built Instead',
-      text: 'CardioX integrates real-time 12-lead acquisition, advanced beat morphology clustering, and AI-driven clinical reporting into an offline-first desktop platform.',
-      mobile: [
-        'Pan-Tompkins peak detection',
-        '8-stage noise mitigation filter',
-        'Lead disconnection alerts.',
-        'Offline persistent caching',
-      ],
-      desktop: [
-        'Morphology Beat Template clustering',
-        'Lorenz / Poincaré autonomic HRV maps',
-        'AI Clinical Assistant & Interactive Chatbot',
-        'Asynchronous background report compiler',
-      ],
-    },
-    better: {
-      title: 'Why CardioX Performs Better',
-      points: [
-        { title: 'Continuous Clinical Workflow', text: 'ECG rendering remains responsive even while filtering, analysis, and report generation run in the background.' },
-        { title: 'Offline-First Resilience', text: 'Patient records remain safely stored during internet outages and automatically synchronize when connectivity returns.' },
-        { title: 'High-Fidelity Rendering', text: 'Smooth real-time waveform rendering with graphics engine fallback for low-spec clinical devices.' },
-        { title: 'Secure License Security', text: 'Three-pillar signature check combined with local hardware fingerprint registration.' },
-        { title: 'AI Report Assistant', text: 'AI-assisted clinical report drafting and ECG interpretation support.' },
-        { title: 'Specialty Screening', text: 'Includes Hyperkalemia Screening, Heart Rate Variability (HRV) tracking, and advanced Arrhythmia Detection.' },
-      ],
-    },
-    specs: [
-      ['Core Platform', 'Cross-platform desktop application'],
-      ['Signal Analysis', 'Real-time ECG processing, Pan-Tompkins R-peak detection, noise suppression, QT/QTc calculation, HRV analysis'],
-      ['Cloud Integration', 'Automatic synchronization, secure storage, background upload'],
-      ['Security', 'License encryption, hardware binding, offline protection'],
-    ],
-    workflow: [
-      { title: 'Acquisition', text: 'Smart lead derivation calculates 12-lead ECG from 8 physical channels.' },
-      { title: 'Filtering', text: 'Notch, comb, and high-pass filters clean baseline drift and muscle tremors.' },
-      { title: 'Analysis', text: 'Holter engine clusters beats by morphology for rapid review.' },
-      { title: 'AI Review', text: 'AI-assisted clinical report drafting and interpretation support.' },
-      { title: 'Cloud Archive', text: 'Secure upload and automatic synchronization with cloud repository.' },
-    ],
-    useCases: [
-      { title: 'Diagnostic Labs', text: 'High-volume Holter clustering and multi-page reporting.' },
-      { title: 'Mobile Clinics', text: 'Offline queueing and low-spec hardware rendering support.' },
-      { title: 'Cardiology Units', text: 'Real-time 12-lead acquisition with vector axis calculations.' },
-    ],
-    expansion: {
-      title: 'Future Product Vision',
-      points: [
-        { title: 'Next Generation AI Diagnostics', text: 'Edge-compiled CNN models for offline micro-arrhythmia detection.' },
-        { title: 'HL7 / FHIR Integration', text: 'Native enterprise hospital records (EMR/EHR) interoperability layer.' },
-      ],
-    },
-  },
-  {
-    id: '3-channel-ecg',
-    kicker: '3 Channel ECG',
-    title: '3 Channel ECG · ',
-    subtitle: 'Entry-Level Clinical ECG System',
-    image: ecg3Channel,
-    description:
-      'A practical 3-channel ECG system designed for faster acquisition and connected reporting in clinics.',
-    quote: 'Designed around operational realities.',
-    problem: {
-      title: 'The Problem We Saw',
-      text: 'Most entry-level ECG systems are built only to meet specifications — not to improve real clinical workflow. Clinics and diagnostic centers often face slow acquisition, difficult review, and outdated interfaces.',
-      points: [
-        'Slow ECG acquisition',
-        'Difficult report review',
-        'Outdated interfaces',
-        'Unreliable recording-to-sharing workflow',
-        'Operationally heavy machines',
-      ],
-      others: 'Many systems are technically functional but hard to deploy quickly and disconnected from modern digital workflows.',
-    },
-    missing: {
-      title: 'What Others Are Missing',
-      text: 'Most standard 3-channel ECG systems focus only on printing and basic acquisition. Very few are designed around workflow simplicity, digital sharing, and fast diagnosis flow.',
-      points: [
-        'Workflow simplicity',
-        'Digital sharing',
-        'Cleaner user experience',
-        'Fast diagnosis flow',
-        'Clinical presentation quality',
-      ],
-    },
-    built: {
-      title: 'What We Built Instead',
-      text: 'The DECK MOUNT ELECTRONICS 3 Channel ECG system brings faster acquisition, easier operation, and connected reporting into one practical workflow.',
-      mobile: [
-        'Automatic, manual, and rhythm modes',
-        'Wireless connectivity',
-        'Real-time waveform preview',
-      ],
-      desktop: [
-        'Interpretation software',
-        'PDF export workflow',
-        'Thermal reporting',
-      ],
-    },
-    better: {
-      title: 'Why Our ECG System Performs Better',
-      points: [
-        { title: 'Cloud-Enabled Workflow', text: 'Instantly sync ECG records to the central cloud for remote diagnostic review.' },
-        { title: 'Simultaneous 12-Lead Capture', text: 'Simultaneous interpretation across all 12 leads improves clinical review speed.' },
-        { title: 'Better Signal Intelligence', text: 'Lead fail indication, reversal detection, and pacemaker spike detection improve reliability.' },
-        { title: 'Connected Reporting', text: 'Dedicated ECG download software with Cloud PDF workflow and USB/LAN connectivity.' },
-        { title: 'Built for Continuous Use', text: 'Rechargeable battery backup and high uptime design for clinics and hospitals.' },
-        { title: 'Clinical Trust', text: 'ISO 13485 compliance, MDR 2017 support, and 5-year warranty support confidence.' },
-      ],
-    },
-    specs: [
-      ['Lead system', 'Simultaneous 12-lead acquisition'],
-      ['Modes', 'Auto, Manual, Rhythm'],
-      ['Display', 'Real-time waveform preview'],
-      ['Connectivity', 'USB, LAN, Cloud-Ready Wireless'],
-      ['Output', 'Thermal print + Cloud PDF export'],
-      ['Compliance', 'ISO 13485, MDR 2017'],
-    ],
-    workflow: [
-      { title: 'Acquire', text: 'Automatic, manual, or rhythm ECG recording.' },
-      { title: 'Preview', text: 'Real-time waveform display with quality indication.' },
-      { title: 'Sync', text: 'Direct cloud upload for organization-wide access.' },
-      { title: 'Interpret', text: 'Cloud-assisted interpretation software for review.' },
-      { title: 'Export', text: 'Generate printable reports and Cloud-stored PDF files.' },
-    ],
-    useCases: [
-      { title: 'Clinics', text: 'Fast adoption in outpatient settings.' },
-      { title: 'Diagnostic centers', text: 'Reliable everyday acquisition.' },
-      { title: 'Small hospitals', text: 'Stable entry-level diagnostic path.' },
-    ],
-    expansion: {
-      title: 'Future Direction',
-      points: [
-        { title: 'Connected Ecosystems', text: 'Cloud-based review and mobile-to-desktop diagnostics.' },
-        { title: 'AI Interpretation', text: 'Advanced cardiac monitoring and AI-assisted review workflows.' },
-      ],
-    },
-  },
-  {
-    id: 'sleepsense',
-    kicker: 'Sleep Study',
-    title: 'Sleep Sense',
-    subtitle: 'Level 3 Home Sleep Test',
-    image: sleepSense,
-    description:
-      'Level 3 home sleep test built to bring the lab home.',
-    quote: 'The lab comes home.',
-    problem: {
-      title: 'The Problem We Saw',
-      text: 'Traditional sleep testing is expensive, uncomfortable, and difficult to scale. Patients often avoid lab testing, struggle with overnight hospital stays, experience delayed diagnosis, and fail to complete full studies.',
-      points: [
-        'Limited sleep lab capacity',
-        'Operational complexity',
-        'Difficult patient compliance',
-      ],
-    },
-    missing: {
-      title: 'What Others Are Missing',
-      text: 'Most home sleep systems feel overly technical, lack clean workflows, generate difficult reports, and create poor patient experience. Many devices are built for recording — not for practical deployment.',
-    },
-    built: {
-      title: 'What We Built Instead',
-      text: 'Sleep Sense brings the sleep lab into the home. The system combines portable overnight recording, 16-hour continuous capture, breathing event analysis, SpO₂ and pulse tracking, printable PDF reports, and lightweight wearable design into a cleaner patient-friendly workflow.',
-    },
-    better: {
-      title: 'Why Sleep Sense Performs Better',
-      points: [
-        { title: 'Home-first workflow', text: 'Testing happens naturally in the patient’s real sleep environment.' },
-        { title: 'Cloud-Sync Reporting', text: 'Automatic data upload to clinical cloud for immediate overnight study review.' },
-        { title: 'Better patient comfort', text: '214g wearable architecture designed for home usability.' },
-        { title: 'Faster diagnosis', text: 'Actionable cloud reports ready for clinical review by morning.' },
-        { title: 'Real respiratory tracking', text: 'Airflow, SpO₂, pulse, pleth, body position, and breathing events in one study.' },
-      ],
-    },
-    specs: [
-      ['Study type', 'Level 3 home sleep test'],
-      ['Recording', '16 hours continuous'],
-      ['Detection', '95%+ breathing event analysis'],
-      ['Connectivity', 'Wireless Cloud Sync'],
-      ['Storage', '8 GB (Local) + Unlimited Cloud'],
-      ['Weight', '214 g'],
-      ['Output', 'Printable PDF + Cloud Dashboard'],
-    ],
-    workflow: [
-      { title: 'Device', text: 'Wear the device for overnight recording.' },
-      { title: 'Cloud Sync', text: 'Auto-upload study data to the clinical portal.' },
-      { title: 'Analysis', text: 'AI-assisted breathing event detection on cloud.' },
-      { title: 'Report', text: 'Generate clinical PDF and interactive dashboard.' },
-      { title: 'Review', text: 'Remote doctor review of SpO₂ and airflow data.' },
-    ],
-    useCases: [
-      { title: 'Sleep clinics', text: 'Home sleep testing for faster diagnosis.' },
-      { title: 'Pulmonology', text: 'Screening for apnea and desaturation.' },
-      { title: 'Home care', text: 'Patient-friendly overnight testing.' },
-      { title: 'Follow-up', text: 'Track response after CPAP initiation.' },
-    ],
-  },
-  {
-    id: 'bipap-vt20',
-    kicker: 'Respiratory Care',
-    title: 'BiPAP VT20 ST',
-    subtitle: 'Premium Respiratory Therapy',
-    image: vt80stImage,
-    description:
-      'Deckmount VT20 ST was designed to make respiratory therapy feel calmer, simpler, and easier to maintain long term.',
-    quote: 'Therapy that feels natural and calm.',
-    problem: {
-      title: 'The Problem We Saw',
-      text: 'Most respiratory therapy devices are designed around pressure delivery — not patient comfort, long-term usability, or therapy confidence. Patients struggle with uncomfortable airflow, dry throat, and confusing interfaces.',
-      points: [
-        'Uncomfortable airflow transitions',
-        'Dry throat and nasal irritation',
-        'Confusing interfaces',
-        'Difficult setup',
-        'Poor adherence to therapy',
-        'Anxiety during night-time usage',
-      ],
-      others: 'Clinics also struggle with explaining therapy clearly and fragmented monitoring workflows.',
-    },
-    missing: {
-      title: 'What Others Are Missing',
-      text: 'Most BiPAP systems feel clinical but intimidating and operationally complex. They often lack smoother transitions and intelligent comfort workflows.',
-      points: [
-        'Therapy adherence',
-        'Patient confidence',
-        'Home usability',
-        'Simplified respiratory care workflow',
-      ],
-    },
-    built: {
-      title: 'What We Built Instead',
-      text: 'A patient-friendly respiratory platform that makes therapy easier to trust, explain, and continue every night.',
-      mobile: [
-        'Intelligent pressure support',
-        'Multiple therapy modes',
-        'Integrated humidification',
-        'Smart reminders',
-      ],
-      desktop: [
-        'Advanced safety alarms',
-        'Oxygen compatibility',
-        'Comfort-focused transitions',
-      ],
-    },
-    better: {
-      title: 'Why VT20 ST Performs Better',
-      points: [
-        { title: 'Cloud Adherence Tracking', text: 'Real-time therapy monitoring via cloud portal for better clinical follow-up.' },
-        { title: 'Exhalation Relief', text: 'Pressure relief technology creates a smoother and more natural breathing experience.' },
-        { title: 'Heated Humidifier', text: 'Built-in humidifier with 8 adjustable levels helps reduce throat and nasal dryness.' },
-        { title: 'Auto On/Off', text: 'Automatically starts therapy when mask is worn and stops when removed.' },
-        { title: '4.3-inch Display', text: 'Easy access to therapy settings, sleep data, and system status.' },
-        { title: 'Advanced Safety', text: 'Detects air leakage, low pressure, and abnormal respiratory rates.' },
-      ],
-    },
-    specs: [
-      ['Modes', 'CPAP, S, T, ST, VAPS'],
-      ['Connectivity', 'Integrated Cloud Monitoring'],
-      ['Display', '4.3-inch color LCD'],
-      ['Humidification', '8 levels, integrated'],
-      ['Safety', 'Leakage, Pressure, and Rate alarms'],
-      ['Convenience', 'Auto On/Off, Smart Reminders'],
-    ],
-    workflow: [
-      { title: 'Setup', text: 'Configure therapy mode and comfort settings.' },
-      { title: 'Sleep Therapy', text: 'Automatic airflow adjustment supports breathing.' },
-      { title: 'Cloud Monitoring', text: 'Sync therapy data to cloud for adherence review.' },
-      { title: 'Monitoring', text: 'System alarms and cloud reminders maintain quality.' },
-      { title: 'Follow-Up', text: 'Clinicians adjust therapy remotely based on cloud data.' },
-    ],
-    useCases: [
-      { title: 'Home care', text: 'Long-term respiratory support at home.' },
-      { title: 'Sleep apnea', text: 'Comfortable overnight therapy.' },
-      { title: 'Pulmonology', text: 'Post-hospital respiratory follow-up.' },
-    ],
-    expansion: {
-      title: 'Future Respiratory Ecosystem',
-      points: [
-        { title: 'Connected Monitoring', text: 'Cloud-linked therapy review and remote adherence tracking.' },
-        { title: 'AI Analysis', text: 'AI-assisted respiratory analysis and unified sleep workflows.' },
-      ],
-    },
-  },
-  {
-    id: 'bipap-vt60',
-    kicker: 'Noninvasive Ventilation',
-    title: 'BiPAP VT60 ST',
-    subtitle: 'Adaptive Ventilation Platform',
-    image: vt60stImage,
-    description:
-      'Deckmount VT60 ST is a flexible noninvasive ventilation platform that adapts to different respiratory conditions while keeping therapy comfortable.',
-    quote: 'Strong support without added effort.',
-    problem: {
-      title: 'The Problem We Saw',
-      text: 'Most respiratory support systems are designed for pressure delivery alone — not for adaptable long-term care. Patients with COPD or hypoventilation require therapy that changes with their behavior.',
-      points: [
-        'Uncomfortable transitions',
-        'Down therapy adaptability',
-        'Difficult setup',
-        'Dry throat and nasal discomfort',
-        'Weak personalization',
-        'Complicated operation',
-      ],
-      others: 'Clinics struggle with explaining advanced therapy clearly and maintaining long-term adherence.',
-    },
-    missing: {
-      title: 'What Others Are Missing',
-      text: 'Most standard systems focus on fixed pressure. They lack volume-assured ventilation and personalized comfort workflows.',
-      points: [
-        'Multiple adaptive modes',
-        'Volume-assured ventilation',
-        'Smooth pressure transitions',
-        'Long-term adaptability',
-      ],
-    },
-    built: {
-      title: 'What We Built Instead',
-      text: 'A flexible noninvasive ventilation platform designed to deliver stronger support without making therapy feel harder for the patient.',
-      mobile: [
-        'CPAP, S, ST, T, and VAPS modes',
-        'Intelligent airflow response',
-        'Heated humidification',
-      ],
-      desktop: [
-        'Trigger sensitivity control',
-        'Ramp-based transitions',
-        'Leakage compensation',
-      ],
-    },
-    better: {
-      title: 'Why VT60 ST Performs Better',
-      points: [
-        { title: 'Cloud Ventilation Analysis', text: 'Unified cloud dashboard for monitoring COPD and hypoventilation therapy adherence.' },
-        { title: 'Multi-Mode Ventilation', text: 'Supports CPAP, S, ST, T, and VAPS for a wide range of conditions.' },
-        { title: 'Pressure Flexibility', text: 'IPAP up to 30 cmH2O and EPAP up to 28 cmH2O for customization.' },
-        { title: 'Natural Sync', text: 'Customizable trigger sensitivity helps the machine respond to patient effort.' },
-        { title: 'Ramp Comfort', text: 'Gradually increases pressure over 5–45 minutes for smoother sleep transition.' },
-        { title: 'Personalized Care', text: 'Gender-specific settings improve therapy optimization.' },
-      ],
-    },
-    specs: [
-      ['Modes', 'CPAP, S, T, ST, VAPS'],
-      ['Connectivity', 'Cloud-Linked Monitoring'],
-      ['IPAP Range', '4 – 30 cmH2O'],
-      ['EPAP Range', '4 – 28 cmH2O'],
-      ['Tidal Volume', '150 – 1800 ml'],
-      ['Comfort', 'Ramp Time (5-45 min), Heated Humidifier'],
-    ],
-    workflow: [
-      { title: 'Setup', text: 'Configure therapy mode, pressure, and sensitivity.' },
-      { title: 'Support', text: 'Machine dynamically supports breathing modes.' },
-      { title: 'Cloud Sync', text: 'Auto-sync ventilation data for remote clinical review.' },
-      { title: 'Overnight', text: 'Continuous airflow support assists ventilation.' },
-      { title: 'Review', text: 'Clinicians adjust parameters remotely via cloud.' },
-    ],
-    useCases: [
-      { title: 'COPD management', text: 'Stable ventilation for chronic conditions.' },
-      { title: 'OHS therapy', text: 'Volume-assured pressure support.' },
-      { title: 'Sleep wellness', text: 'Adaptable overnight respiratory care.' },
-    ],
-    expansion: {
-      title: 'Future Respiratory Ecosystem',
-      points: [
-        { title: 'Remote Monitoring', text: 'Cloud-connected therapy review and AI ventilation analysis.' },
-        { title: 'Connected Care', text: 'Adherence tracking and unified patient follow-up systems.' },
-      ],
-    },
-  },
-  {
-    id: 'tabletop-ecg',
-    kicker: '12 Channel ECG',
-    title: '12 Channel ECG',
-    subtitle: 'Hospital Tabletop Diagnostic System',
-    image: ecg12channelTabletop,
-    description:
-      'A hospital-ready 12-channel ECG system focused on clinical trust, clear workflow, and faster setup.',
-    quote: 'Built to feel serious, clear, and fast in a clinic.',
-    problem: {
-      title: 'The Problem We Saw',
-      text: 'Many tabletop ECG systems feel outdated, slow, and operationally heavy. Clinics often deal with complicated workflows, poor presentation quality, slow setup, and disconnected reporting systems.',
-      points: [
-        'Complicated clinical workflows',
-        'Poor presentation quality',
-        'Slow setup and acquisition',
-        'Disconnected reporting systems',
-        'Weak visual trust during demos',
-      ],
-      others: 'Existing tabletop systems prioritize hardware over workflow, creating a slower operator experience.',
-    },
-    missing: {
-      title: 'What Others Are Missing',
-      text: 'Most standard tabletop systems lack connected reporting and are difficult to explain to buyers. Very few are designed for fast adoption and trust-building during clinical demos.',
-      points: [
-        'Connected reporting workflow',
-        'Buyer trust-building design',
-        'Cleaner customer demos',
-        'Faster clinic adoption',
-      ],
-    },
-    built: {
-      title: 'What We Built Instead',
-      text: 'We created a stable, modern 12-channel ECG system designed for clinical reliability and operational simplicity in hospitals.',
-      mobile: [
-        'Fast acquisition workflow',
-        'Modern user interface',
-        'Stable tabletop architecture',
-      ],
-      desktop: [
-        'Digital report generation',
-        'Clearer review path',
-        'Hospital-ready presentation',
-      ],
-    },
-    better: {
-      title: 'Why Our Tabletop ECG Performs Better',
-      points: [
-        { title: 'Hospital Cloud Integration', text: 'Seamlessly sync patient records with hospital EMR and central clinical cloud.' },
-        { title: 'Stronger Visual Trust', text: 'Built to look and feel clinically reliable during deployment.' },
-        { title: 'Operational Clarity', text: 'Designed around fast acquisition and readable clinical workflow.' },
-        { title: 'Cloud Reporting Flow', text: 'Instant remote review and digital report generation via cloud portal.' },
-      ],
-    },
-    specs: [
-      ['Lead system', '12-channel ECG'],
-      ['Connectivity', 'USB, LAN, Cloud-Integrated Wireless'],
-      ['Use', 'Hospital and clinic tabletop'],
-      ['Reporting', 'Digital report and Cloud review'],
-      ['Workflow', 'Fast acquisition and cloud-enabled presentation'],
-    ],
-    workflow: [
-      { title: 'Setup', text: 'Quick tabletop configuration.' },
-      { title: 'Acquisition', text: 'Fast 12-channel ECG capture.' },
-      { title: 'Cloud Sync', text: 'Instant upload for hospital-wide clinical review.' },
-      { title: 'Report', text: 'Digital report generation and secure cloud storage.' },
-    ],
-    useCases: [
-      { title: 'Clinics', text: 'Fast adoption in outpatient settings.' },
-      { title: 'Hospitals', text: 'Stable tabletop diagnostic workflow.' },
-      { title: 'Diagnostic centers', text: 'Readable report and review flow.' },
-    ],
-  },
-];
-
-const pdfHighlights = [
-  {
-    title: 'Smart ECG Monitoring Ecosystem',
-    text: 'The hero message from the PDF is now the page language, not a separate slide.',
-    image: pdfImg347,
-  },
-  {
-    title: '12 Lead Portable ECG',
-    text: 'The device is framed as a full 12-lead portable product with a premium industrial feel.',
-    image: pdfImg18,
-  },
-  {
-    title: 'Portable ECG with 24-bit precision',
-    text: 'High-fidelity signal capture, secure cloud connectivity, instant reporting, and clinical-grade accuracy.',
-    image: pdfImg231,
-  },
-  {
-    title: 'Complete 12-Lead Dashboard',
-    text: 'The dashboard and history visuals communicate a proper workflow, not just hardware.',
-    image: pdfImg112,
-  },
-  {
-    title: 'Doctor Database & Sharing',
-    text: 'Review, sharing, and “Reviewed by” confirmation give the product a connected clinical story.',
-    image: pdfImg344,
-  },
-  {
-    title: 'Engineered for Clinical Excellence',
-    text: 'The PDF’s feature-board style is preserved with a polished, product-first presentation.',
-    image: pdfImg16,
-  },
-];
-
-const ultraMaxFeatureBlocks = [
-  {
-    eyebrow: 'ADVANCED FEATURES',
-    title: 'Engineered for Clinical Excellence',
-    subtitle:
-      'Rhythm Ultra Max combines cutting-edge technology with practical design to deliver accurate, reliable, and accessible cardiac diagnostics anywhere, anytime.',
-    badge: 'FLUKE TESTED',
-    image: pdfImg347,
-    points: [
-      'Hospital-Grade 12-Lead Accuracy',
-      'Simultaneous 12-lead ECG from 10 electrodes, tested on Fluke gold-standard equipment.',
-      '1000 samples/sec/channel for precise and reliable cardiac assessment.',
-    ],
-  },
-  {
-    eyebrow: 'POWER & PORTABILITY',
-    title: 'Extended Battery Performance',
-    subtitle:
-      '4000 mAh battery delivers up to 1 month of standby or 4 hours backup on a single charge.',
-    badge: '4000 mAh',
-    image: pdfImg231,
-    points: [
-      'Reliable performance with minimal downtime.',
-      'Freedom from frequent recharging.',
-      'Designed for field, bedside, and remote use.',
-    ],
-  },
-  {
-    eyebrow: 'MOBILE WORKFLOW',
-    title: 'Portable Handheld Design',
-    subtitle:
-      'Weighing just 298 grams, this lightweight ECG is easy to carry and ideal for on-the-go, bedside, and remote care.',
-    badge: '298 g',
-    image: pdfImg18,
-    points: [
-      'Handheld form factor for mobile clinical teams.',
-      'Easy to present in sales demos.',
-      'Made for bedside and outreach workflows.',
-    ],
-  },
-];
-
-const ultraMaxSpecGroups = [
-  {
-    title: 'Product Basics',
-    rows: [
-      ['Product Name', 'Rhythm Ultra Max'],
-      ['Dimensions', '171 mm (L) x 95 mm (W) x 40.5 mm (H)'],
-      ['Weight', '298 grams'],
-      ['Power', 'Rechargeable Li-Po Battery, 3.7 V / 4000 mAh'],
-      ['Charging', 'USB Type B, 8-10 hrs charging time, up to 1 month standby or up to 160 ECGs'],
-      ['Operating Conditions', '10 °C to 50 °C, 20% to 90% relative humidity'],
-      ['Storage Conditions', '0 °C to 55 °C, 10% to 90% relative humidity'],
-      ['Warranty', '1 year'],
-    ],
-  },
-  {
-    title: 'ECG Acquisition Details',
-    rows: [
-      ['Number of Channels', '12-lead simultaneous ECG from 10 electrodes'],
-      ['Connectivity', 'BLE 5.0 (Bluetooth) & USB 2.0 & above'],
-      ['Frequency Response', '0.01 ~ 250 Hz'],
-      ['Time Constant', '> 3 seconds'],
-      ['Input Impedance', '> 50M Ohms'],
-      ['Input CIR Current', '≤ 0.1 μA'],
-      ['Patient Leak Current', '< 10 μA'],
-      ['Sensitivity (Amplitude)', '5, 10, 20 mm/mV'],
-      ['Recording Speed', '12.5, 25, 50 mm/sec'],
-      ['CMRR', '> 110 dB'],
-      ['A to D Conversion', '24 bit'],
-      ['Sampling Frequency', '1000 samples per sec/channel'],
-      ['Filters', 'Line frequency, base line, and muscle filters'],
-      ['Noise Level', '< 15 μVp-p'],
-    ],
-  },
-  {
-    title: 'Data, Sharing, and Compatibility',
-    rows: [
-      ['Patient Data', 'Name, Age, Gender'],
-      ['LED Indicators', 'Battery, electrodes, and app connection'],
-      ['Analysis', 'HR, PR, QRS, QT, QTc, QTcF, RV5, SV1, P/QRS/T deviation'],
-      ['ECG Sharing (PDF)', 'WhatsApp and Mail'],
-      ['App Compatibility', 'Windows 10 & above, Android 6.0 & above'],
-      ['What\'s in the Box', 'Rhythm Ultra Max, power cable, adapter, electrodes x10, cable with crocodile clip, carry bag, user manual'],
-    ],
-  },
-];
-
-const cardioxFeatureBlocks = [
-  {
-    title: 'Rhythm UltraMax Pro',
-    subtitle:
-      'A clinical-grade ECG intelligence platform connecting clinics, doctors, and patients in one ecosystem.',
-    image: cardioxAppDashboard,
-    cards: [
-      {
-        title: '12-Lead ECG',
-        text: 'Live acquisition with real-time metrics including HR, PR, QRS, QT/QTc, ST, and AI arrhythmia detection across 80+ diagnostic patterns.',
-      },
-      {
-        title: 'HRV Analysis',
-        text: 'Dedicated Lead II capture with interval tracking and long-window rhythm variability analysis.',
-      },
-      {
-        title: 'Hyperkalemia Detection',
-        text: 'Specialized screening that analyzes T-wave, PR, and QRS behavior across Lead II and precordial signals.',
-      },
-      {
-        title: 'Waveform Analysis',
-        text: 'Doctors can pull pre-recorded ECGs from a patient\'s phone via API, then review them on desktop with magnifier, ruler, caliper, and annotation tools.',
-      },
-      {
-        title: 'Rhythm UltraMax Pro',
-        text: 'The mobile app shows device connected status, quick access, and fast ECG recording for the patient-facing capture layer.',
-      },
-    ],
-  },
-  {
-    title: 'Clinical Workflow',
-    subtitle:
-      'Patient records an ECG on mobile, uploads it through API, and the doctor reviews it on Rhythm UltraMax desktop for report generation.',
-    image: pdfImg112,
-    cards: [
-      {
-        title: 'Mobile to Desktop Review',
-        text: 'The patient records on the phone app, the trace syncs through API, and the doctor opens it on desktop for precision review.',
-      },
-      {
-        title: 'AI Diagnostics + Reports',
-        text: 'AI diagnostics, PDF / JSON reports, cloud sync, offline-first support, and multi-lead display modes keep the workflow clinical and complete.',
-      },
-      {
-        title: 'One Line Summary',
-        text: 'Rhythm UltraMax Pro is a full cardiac diagnostic suite: live ECG, HRV, hyperkalemia screening, and mobile-to-desktop waveform review in one platform.',
-      },
-    ],
-  },
-  {
-    title: 'Upcoming Portal Structure',
-    subtitle:
-      'A structured multi-role system for clinic operations, doctor review, and controlled access.',
-    image: pdfImg347,
-    cards: [
-      {
-        title: 'HCP Account',
-        text: 'Runs ECG tests, manages patients, and lets admins create users, associate doctors, and export reports.',
-      },
-      {
-        title: 'Doctor Account',
-        text: 'Receives linked ECG reports from clinics, reviews them, and approves reports with doctor visibility inside the HCP account.',
-      },
-      {
-        title: 'Organization Hierarchy',
-        text: 'Deckmount → Organizations → HCP Head / Head Doctor → Admins → Clinical Users / Jr Doctors / Receptionists.',
-      },
-      {
-        title: 'Role-Based Control',
-        text: 'Clinical users can manage patients but cannot create other users, keeping the workflow structured and safe.',
-      },
-    ],
-  },
-];
-
-const sixMonthProgram = [
-  {
-    month: 'Month 1-2',
-    title: 'Product story alignment',
-    text: 'Refine the final device images, brochure copy, and comparative messaging for every product line.',
-  },
-  {
-    month: 'Month 3-4',
-    title: 'App and workflow rollout',
-    text: 'Connect the ECG, sleep, and respiratory products to a unified review and reporting journey.',
-  },
-  {
-    month: 'Month 5-6',
-    title: 'Market launch and review',
-    text: 'Publish the final presentation, train the sales team, and prepare the clinical demo material.',
-  },
-];
-
-const featureRows = [
-  {
-    icon: Activity,
-    title: 'Live ECG Monitoring',
-    text: 'Real-time waveform tracking with clinical precision.',
-    image: pdfImg16,
-  },
-  {
-    icon: Sparkles,
-    title: 'Intelligent Detection',
-    text: 'Advanced analysis for cardiac abnormalities.',
-    image: pdfImg225,
-  },
-  {
-    icon: Workflow,
-    title: 'Unified Dashboard',
-    text: 'Centralized view of reports and patient history.',
-    image: pdfImg112,
-  },
-  {
-    icon: BatteryCharging,
-    title: 'Extended Battery Performance',
-    text: 'The battery callout from the PDF stays visible as a product benefit.',
-    image: pdfImg231,
-  },
-  {
-    icon: Bluetooth,
-    title: 'Mobile App-Based ECG Recording',
-    text: 'Connectivity is shown as part of the clinical workflow.',
-    image: pdfImg069,
-  },
-  {
-    icon: ShieldCheck,
-    title: '99.9% Accuracy',
-    text: 'A direct confidence metric that keeps the product presentation strong.',
-    image: pdfImg347,
-  },
-];
-
-const floatIn = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.25 },
-  transition: { duration: 0.6, ease: 'easeOut' },
-};
-
-function SectionHeader({ kicker, title, text }) {
-  return (
-    <div className="max-w-3xl">
-      <p className="text-[10px] font-black uppercase tracking-[0.45em] text-brand-blue mb-4">
-        {kicker}
-      </p>
-      <h2 className="text-4xl md:text-5xl font-black leading-[0.95] tracking-tight text-slate-950">
-        {title}
-      </h2>
-      <p className="mt-5 text-base md:text-lg leading-8 text-slate-600">
-        {text}
-      </p>
-    </div>
-  );
-}
-
-function ImageCard({ image, title, text, className = '' }) {
-  return (
-    <motion.article
-      {...floatIn}
-      whileHover={{ y: -6, scale: 1.01 }}
-      className={[
-        'group overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]',
-        className,
-      ].join(' ')}
-    >
-      <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-slate-100 to-white">
-        <img
-          src={image}
-          alt={title}
-          className="h-full w-full object-contain p-6 transition-transform duration-500 group-hover:scale-[1.02]"
-          loading="lazy"
-          decoding="async"
-        />
-      </div>
-      <div className="p-7 md:p-8">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-2xl font-bold text-slate-950">{title}</h3>
-            {text ? <p className="mt-1 text-xs font-black uppercase tracking-[0.28em] text-slate-400">{text}</p> : null}
-          </div>
-          <ChevronRight className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-0.5" />
-        </div>
-      </div>
-    </motion.article>
-  );
-}
-
-function ProductGallery({ images, title, subtitle }) {
-  const [activeIdx, setActiveIdx] = useState(0);
-
-  if (!images || images.length === 0) return null;
-
-  return (
-    <motion.article
-      {...floatIn}
-      className="group overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)] flex flex-col h-full"
-    >
-      <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-slate-100 to-white flex items-center justify-center p-6 min-h-[300px]">
-        <img
-          src={images[activeIdx].src}
-          alt={images[activeIdx].label || title}
-          className="max-h-full max-w-full object-contain transition-transform duration-500 hover:scale-[1.01]"
-        />
-      </div>
-
-      {/* Thumbnails */}
-      {images.length > 1 && (
-        <div className="flex gap-2.5 px-6 py-4 overflow-x-auto justify-center border-b border-slate-100 bg-slate-50/50">
-          {images.map((img, idx) => (
-            <button
-              key={idx}
-              onClick={() => setActiveIdx(idx)}
-              className={`relative h-14 w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 bg-white p-1 transition-all ${
-                activeIdx === idx
-                  ? 'border-brand-blue scale-[1.04] shadow-md'
-                  : 'border-slate-200 opacity-60 hover:opacity-100'
-              }`}
-            >
-              <img src={img.src} alt={img.label} className="h-full w-full object-contain" />
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="p-6 md:p-8 flex-grow">
-        <h3 className="text-xl font-bold text-slate-950">
-          {images[activeIdx].label}
-        </h3>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          {images[activeIdx].desc || subtitle}
-        </p>
-      </div>
-    </motion.article>
-  );
-}
-
-function SpecTable({ rows, valueLabel = 'This device' }) {
-  return (
-    <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white">
-      <div className="grid grid-cols-[1fr_1.3fr] bg-slate-950 px-6 py-5 text-xs font-black uppercase tracking-[0.28em] text-white">
-        <div>Feature</div>
-        <div>{valueLabel}</div>
-      </div>
-      <div className="divide-y divide-slate-100">
-        {rows.map(([feature, value]) => (
-          <div key={feature} className="grid grid-cols-[1fr_1.3fr] gap-4 px-6 py-5 text-lg">
-            <div className="font-bold text-slate-950">{feature}</div>
-            <div className="leading-7 text-slate-600">{value}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PillGroup({ items }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {items.map((item) => (
-        <span
-          key={item}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.28em] text-slate-600"
-        >
-          {item}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function UseCaseGrid({ items }) {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
-      {items.map((item) => (
-        <div
-          key={item.title}
-          className="rounded-[1.35rem] bg-slate-50 p-6 shadow-[0_14px_30px_rgba(15,23,42,0.04)]"
-        >
-          <div className="text-sm font-semibold text-brand-blue">
-            {item.title}
-          </div>
-          <p className="mt-2 text-base leading-7 text-slate-700">{item.text}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function HighlightGrid({ items }) {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
-      {items.map((item) => (
-        <div
-          key={item.title}
-          className="rounded-[1.35rem] bg-slate-50 p-6 shadow-[0_14px_30px_rgba(15,23,42,0.04)]"
-        >
-          <p className="mt-2 text-base leading-7 text-slate-700">{item.text}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function WorkflowStrip({ steps }) {
-  return (
-    <div className="rounded-[1.75rem] border border-slate-100 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-        {steps.map((step, index) => (
-          <div key={step.title} className="rounded-[1.2rem] bg-slate-50 p-5">
-            <div className="text-sm font-semibold text-brand-blue">
-              {step.title}
-            </div>
-            <p className="mt-2 text-base leading-7 text-slate-700">{step.text}</p>
-            {index < steps.length - 1 ? (
-              <div className="mt-4 text-sm font-semibold text-slate-400">
-                →
-              </div>
-            ) : null}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SpecSheet({ groups }) {
-  return (
-    <div className="grid gap-6">
-      {groups.map((group) => (
-        <motion.div
-          key={group.title}
-          {...floatIn}
-          className="overflow-hidden rounded-[2rem] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
-        >
-          <div className="bg-slate-950 px-6 py-5 text-white">
-            <p className="text-xs font-black uppercase tracking-[0.35em] text-blue-200">
-              Product specification
-            </p>
-            <h3 className="mt-2 text-3xl font-black tracking-tight">{group.title}</h3>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {group.rows.map(([label, value]) => (
-              <div key={label} className="grid gap-2 px-6 py-4 md:grid-cols-[0.38fr_0.62fr] md:items-start">
-                <div className="text-xs font-black uppercase tracking-[0.28em] text-slate-400">
-                  {label}
-                </div>
-                <div className="text-base leading-7 text-slate-700">{value}</div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-function SceneRotator({ scenes }) {
-  const [index, setIndex] = useState(0);
-
+// ═══════════════════════════════════════════════════════════════════════════════
+// HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+function useCountUp(target, inView, dur = 1.8) {
+  const [v, setV] = useState(0);
   useEffect(() => {
-    if (!scenes || scenes.length <= 1) return undefined;
-
-    const timer = window.setInterval(() => {
-      setIndex((current) => (current + 1) % scenes.length);
-    }, 4800);
-
-    return () => window.clearInterval(timer);
-  }, [scenes]);
-
-  if (!scenes || scenes.length === 0) return null;
-
-  const activeScene = scenes[index];
-  const previousScene = scenes[(index + scenes.length - 1) % scenes.length];
-  const nextScene = scenes[(index + 1) % scenes.length];
-
-  return (
-    <div className="overflow-hidden rounded-[1.75rem] border border-white/80 bg-slate-950 shadow-[0_16px_40px_rgba(15,23,42,0.12)]">
-      <div className="border-b border-white/10 px-5 py-4">
-        <p className="text-xs font-black uppercase tracking-[0.35em] text-blue-200">
-          Scene reel
-        </p>
-        <p className="mt-2 text-base leading-7 text-slate-300">
-          A calm field screen, a tense emergency trace, and a clean home follow-up.
-        </p>
-      </div>
-      <div className="relative h-[22rem] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(30,64,175,0.16),_transparent_50%),linear-gradient(135deg,_#020617,_#0f172a_58%,_#111827)]">
-        <Canvas camera={{ position: [0, 0.3, 7.5], fov: 38 }}>
-          <color attach="background" args={['#020617']} />
-          <ambientLight intensity={0.65} />
-          <directionalLight position={[2.4, 4.5, 4]} intensity={1.2} color="#e0f2fe" />
-          <pointLight position={[0, 1.5, 4]} intensity={1.7} color="#2563eb" />
-          <pointLight position={[0, -1, 2]} intensity={0.8} color="#f8fafc" />
-          <StageDeck activeScene={activeScene} previousScene={previousScene} nextScene={nextScene} />
-        </Canvas>
-        <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-4">
-          <SceneTrace scene={activeScene} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SceneTrace({ scene }) {
-  const [phase, setPhase] = useState(0);
-
-  useEffect(() => {
-    let frame = 0;
-    let raf = 0;
-
-    const loop = () => {
-      frame += 1;
-      setPhase(frame / 60);
-      raf = window.requestAnimationFrame(loop);
+    if (!inView) return;
+    let id, start = null;
+    const go = ts => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / (dur * 1000), 1);
+      setV(Math.floor((1 - Math.pow(1 - p, 3)) * target));
+      if (p < 1) id = requestAnimationFrame(go); else setV(target);
     };
+    id = requestAnimationFrame(go);
+    return () => cancelAnimationFrame(id);
+  }, [inView, target, dur]);
+  return v;
+}
 
-    raf = window.requestAnimationFrame(loop);
-    return () => window.cancelAnimationFrame(raf);
-  }, [scene.title]);
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRIMITIVE COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  const config = scene.trace || { color: '#60a5fa', speed: 1, noise: 0, glow: 0.45, breath: 0.18 };
-  const points = Array.from({ length: 48 }, (_, i) => {
-    const x = (i / 47) * 100;
-    const base = Math.sin((i + phase * config.speed * 10) * 0.4);
-    const beat = Math.max(0, Math.sin((i + phase * config.speed * 8) * 1.8)) ** 6;
-    const jitter = config.noise * Math.sin((i * 3.7 + phase * 26) % 9) * (i % 4 === 0 ? 1 : 0.35);
-    const y = 54 - base * 5 - beat * (scene.trace?.amplitude ?? 22) - jitter * 10;
-    return `${x.toFixed(2)},${y.toFixed(2)}`;
-  }).join(' ');
-
-  const glow = 0.55 + Math.sin(phase * 2.4) * (config.breath ?? 0.12);
-
+/** Animated ECG hero line */
+const AnimatedECG = () => {
+  const build = () => {
+    const bl = 50, cw = 180;
+    let d = `M -20 ${bl}`;
+    for (let i = 0; i < 9; i++) {
+      const x = i * cw;
+      d += ` L${x + 20} ${bl} C${x + 22} ${bl},${x + 28} ${bl - 8},${x + 33} ${bl - 8} C${x + 38} ${bl - 8},${x + 44} ${bl},${x + 46} ${bl} L${x + 58} ${bl} L${x + 62} ${bl + 6} L${x + 67} ${bl - 38} L${x + 72} ${bl + 14} L${x + 76} ${bl} L${x + 92} ${bl} C${x + 94} ${bl},${x + 103} ${bl - 13},${x + 112} ${bl - 13} C${x + 121} ${bl - 13},${x + 130} ${bl},${x + 133} ${bl} L${x + 180} ${bl}`;
+    }
+    return d;
+  };
   return (
-    <div className="relative overflow-hidden rounded-[1.25rem] border border-white/10 bg-slate-950/85 px-3 py-3 shadow-[0_16px_30px_rgba(0,0,0,0.35)]">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="text-xs font-black uppercase tracking-[0.35em] text-slate-400">
-          {scene.title}
-        </div>
-        <div className="text-xs font-black uppercase tracking-[0.28em] text-slate-500">
-          {scene.trace?.label}
-        </div>
-      </div>
-      <svg viewBox="0 0 100 72" className="h-20 w-full overflow-visible">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <svg viewBox="0 0 1620 100" className="absolute w-full" style={{ top: '52%', transform: 'translateY(-50%)' }} preserveAspectRatio="xMidYMid slice">
         <defs>
-          <filter id="sceneGlow">
-            <feGaussianBlur stdDeviation="2.6" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+          <linearGradient id="eg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#00D4AA" stopOpacity="0" />
+            <stop offset="15%" stopColor="#00D4AA" stopOpacity="0.5" />
+            <stop offset="85%" stopColor="#00D4AA" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#00D4AA" stopOpacity="0" />
+          </linearGradient>
         </defs>
-        <polyline
-          points={points}
-          fill="none"
-          stroke={config.color}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={glow}
-          filter="url(#sceneGlow)"
-        />
-        <polyline
-          points={points}
-          fill="none"
-          stroke={config.color}
-          strokeWidth="0.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity="0.95"
-        />
+        <motion.path d={build()} stroke="url(#eg)" strokeWidth="1.8" fill="none"
+          initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 3.5, ease: 'easeInOut', delay: .4 }} />
       </svg>
     </div>
   );
-}
+};
 
-function StageDeck({ activeScene, previousScene, nextScene }) {
-  const group = useRef();
+const GridBg = ({ op = .022 }) => (
+  <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: `radial-gradient(rgba(255,255,255,${op}) 1px,transparent 1px)`, backgroundSize: '48px 48px' }} />
+);
+const LightGrid = () => (
+  <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#e2e8f0 1px,transparent 1px)', backgroundSize: '48px 48px' }} />
+);
+const PulsingDot = ({ color = '#00D4AA', size = 8 }) => (
+  <div className="relative flex items-center justify-center" style={{ width: size * 3, height: size * 3 }}>
+    <motion.div animate={{ scale: [1, 2.2, 1], opacity: [.7, 0, .7] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'easeOut' }} className="absolute rounded-full" style={{ width: size, height: size, backgroundColor: color, opacity: .4 }} />
+    <div className="rounded-full z-10" style={{ width: size, height: size, backgroundColor: color }} />
+  </div>
+);
+const Wrap = ({ children, className = '' }) => <div className={`max-w-7xl mx-auto px-6 lg:px-16 ${className}`}>{children}</div>;
+const ChLabel = ({ number, title, light = false }) => (
+  <div className="flex items-center gap-4 mb-8">
+    {number && <span className="text-xs font-black tracking-[.4em] text-[#1A6BFF] uppercase">{number}</span>}
+    <span className={`text-xs font-black tracking-[.35em] uppercase ${light ? 'text-slate-600' : 'text-slate-500'}`}>{title}</span>
+    <div className={`flex-1 h-px ${light ? 'bg-slate-200' : 'bg-slate-800'}`} />
+  </div>
+);
+const SpecRow = ({ label, value, light = false }) => (
+  <div className={`flex items-center justify-between py-3 border-b ${light ? 'border-slate-100' : 'border-white/[.05]'}`}>
+    <span className={`text-sm ${light ? 'text-slate-500' : 'text-slate-400'}`}>{label}</span>
+    <span className={`text-sm font-semibold ${light ? 'text-slate-900' : 'text-white'}`}>{value}</span>
+  </div>
+);
+const Pill = ({ children, dark = true }) => (
+  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${dark ? 'border-white/10 bg-white/[.05] text-slate-300' : 'border-slate-200 bg-white text-slate-600 shadow-sm'}`}>{children}</span>
+);
 
-  useFrame((state, delta) => {
-    if (!group.current) return;
-    group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, Math.sin(state.clock.elapsedTime * 0.18) * 0.06, 0.03);
-    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, -0.08, 0.02);
-    group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, Math.sin(state.clock.elapsedTime * 0.65) * 0.035, 0.04);
-  });
-
-  return (
-    <group ref={group}>
-      <SceneCard scene={previousScene} position={[-2.6, 0.05, -1.4]} active={false} tilt={0.16} />
-      <SceneCard scene={nextScene} position={[2.6, 0.05, -1.4]} active={false} tilt={-0.16} />
-      <SceneCard scene={activeScene} position={[0, 0.25, 0]} active={true} tilt={0} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.75, 0]}>
-        <circleGeometry args={[3.0, 64]} />
-        <meshBasicMaterial color="#1d4ed8" transparent opacity={0.06} />
-      </mesh>
-    </group>
-  );
-}
-
-function SceneCard({ scene, active, position, tilt }) {
-  const ref = useRef();
-
-  useFrame((state, delta) => {
-    if (!ref.current) return;
-    const targetScale = active ? 1.02 : 0.82;
-    ref.current.scale.x = THREE.MathUtils.damp(ref.current.scale.x, targetScale, 4.5, delta);
-    ref.current.scale.y = THREE.MathUtils.damp(ref.current.scale.y, targetScale, 4.5, delta);
-    ref.current.scale.z = THREE.MathUtils.damp(ref.current.scale.z, targetScale, 4.5, delta);
-    ref.current.rotation.y = THREE.MathUtils.lerp(ref.current.rotation.y, active ? 0 : tilt, 0.05);
-    ref.current.rotation.x = THREE.MathUtils.lerp(ref.current.rotation.x, active ? -0.06 : -0.02, 0.04);
-  });
-
-  return (
-    <group ref={ref} position={position}>
-      <mesh>
-        <RoundedBox args={[active ? 3.9 : 2.2, active ? 2.9 : 2.3, 0.16]} radius={0.14} smoothness={8}>
-          <meshStandardMaterial
-            color={active ? '#0b1220' : '#111827'}
-            metalness={0.26}
-            roughness={0.38}
-            emissive={active ? '#1d4ed8' : '#020617'}
-            emissiveIntensity={active ? 0.35 : 0.1}
-          />
-        </RoundedBox>
-      </mesh>
-      {active ? (
-        <Html transform distanceFactor={1.15} position={[0, 0, 0.11]} center>
-          <div className="w-[310px] rounded-[1.15rem] border border-white/10 bg-slate-950/95 px-5 py-4 text-white shadow-[0_18px_35px_rgba(0,0,0,0.35)]">
-            <div className="text-xs font-black uppercase tracking-[0.35em] text-blue-200">
-              {scene.title}
-            </div>
-            <div className="mt-3 text-base leading-7 text-slate-200">
-              {scene.text}
-            </div>
-          </div>
-        </Html>
-      ) : (
-        <Html transform distanceFactor={1.15} position={[0, 0, 0.11]} center>
-          <div className="w-[190px] rounded-[1rem] border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-200 shadow-[0_14px_25px_rgba(0,0,0,0.28)]">
-            <div className="text-xs font-black uppercase tracking-[0.35em] text-slate-400">
-              {scene.title}
-            </div>
-          </div>
-        </Html>
-      )}
-    </group>
-  );
-}
-
-function TypewriterText({ text, className = '', speed = 22 }) {
-  const [visible, setVisible] = useState(text.length);
-
-  useEffect(() => {
-    setVisible(0);
-    const timer = window.setInterval(() => {
-      setVisible((current) => {
-        if (current >= text.length) {
-          window.clearInterval(timer);
-          return text.length;
-        }
-        return current + 1;
-      });
-    }, speed);
-
-    return () => window.clearInterval(timer);
-  }, [text, speed]);
-
-  return <span className={className}>{text.slice(0, visible)}</span>;
-}
-
-function CountUp({ value, className = '', active = true }) {
-  const [display, setDisplay] = useState(active ? value : '0');
-  const startedRef = useRef(false);
-
-  useEffect(() => {
-    if (!active) {
-      setDisplay('0');
-      return undefined;
-    }
-
-    const match = String(value).match(/^([\d.,]+)(.*)$/);
-    if (!match) {
-      setDisplay(value);
-      return;
-    }
-
-    const target = Number(match[1].replace(/,/g, ''));
-    const suffix = match[2];
-    const duration = 1200;
-    let start = 0;
-    let raf = 0;
-
-    const tick = (timestamp) => {
-      if (!start) start = timestamp;
-      const progress = Math.min((timestamp - start) / duration, 1);
-      const current = target * (0.15 + progress * 0.85);
-      const rounded = target >= 100 ? Math.round(current) : current.toFixed(target % 1 === 0 ? 0 : 1);
-      setDisplay(`${Number(rounded).toLocaleString()}${suffix}`);
-
-      if (progress < 1) {
-        raf = window.requestAnimationFrame(tick);
+// Helper to convert Vite asset image URLs to Base64
+const getBase64Image = (imgUrl) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imgUrl;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      try {
+        const dataURL = canvas.toDataURL('image/jpeg', 0.85);
+        resolve(dataURL);
+      } catch (err) {
+        reject(err);
       }
     };
+    img.onerror = (err) => reject(err);
+  });
+};
 
-    if (!startedRef.current) {
-      setDisplay(`0${suffix}`);
+// Central product data for spec sheets
+const productCatalog = {
+  'rhythm-ultramax': {
+    title: "Rhythm UltraMax",
+    subtitle: "Portable 12-Lead ECG System",
+    description: "Rhythm UltraMax captures all 12 leads simultaneously with hospital-grade 24-bit ADC precision. At 298 grams, it deploys in ambulances, rural clinics, emergency response, and bedside care.",
+    image: rhythmUltraMaxImg,
+    specs: [
+      ['Lead configuration', '12-lead simultaneous ECG'],
+      ['Sampling rate', '1,000 SPS per channel'],
+      ['ADC resolution', '24-bit'],
+      ['Wireless', 'Bluetooth LE 5.0'],
+      ['Wired', 'USB direct to CardioX'],
+      ['Battery life', '8 hours continuous acquisition'],
+      ['Weight', '298 grams'],
+      ['Standards', 'IEC 60601 compliant design'],
+    ],
+    features: [
+      { title: "Simultaneous 12-lead", body: "Acquires hospital-grade diagnostic signals directly in the field." },
+      { title: "BLE 5.0 Telemetry", body: "Streams live waveforms directly to companion mobile app under 10s." },
+      { title: "Compact form factor", body: "Weighs only 298g, allowing high portability for medical responders." }
+    ]
+  },
+  'cardiox': {
+    title: "CardioX RhythmPro",
+    subtitle: "Desktop Clinical Suite",
+    description: "A clinical diagnostic nerve center built for diagnostic labs and cardiology workflows. Includes advanced tools for arrhythmia analysis, HRV modeling, and AI-assisted clinical drafting.",
+    image: cardioxDashImg,
+    specs: [
+      ['Arrhythmia tools', '30+ clinically significant tools'],
+      ['Analysis', 'HRV, Lorenz / Poincaré plots'],
+      ['Assistant', 'AI Clinical Assistant & drafting'],
+      ['Special tests', 'Peaked T-wave Hyperkalemia screening'],
+      ['Storage', 'Offline-first database with auto-sync'],
+      ['Security', 'Hardware-bound licensing'],
+    ],
+    features: [
+      { title: "Advanced interpretation", body: "Detects 30+ arrhythmias including AFib, bradycardia, and blocks." },
+      { title: "AI Assistant", body: "Generates clinical draft reviews to accelerate doctor sign-off." },
+      { title: "Offline Resilience", body: "Full local capability, automatically syncing with cloud when live." }
+    ]
+  },
+  '12ch-ecg': {
+    title: "12 Channel ECG",
+    subtitle: "Hospital Tabletop System",
+    description: "Hospital-grade twelve-channel tabletop ECG system designed for clinical diagnostic labs, cardiology departments, and outpatient units. Features high-resolution live display and auto-analysis.",
+    image: ecg12ChImg,
+    specs: [
+      ['Lead configuration', '12-lead simultaneous ECG'],
+      ['Display', 'Large integrated clinical display'],
+      ['Analysis', 'Automated ECG interpretation'],
+      ['Report format', 'PDF / thermal print'],
+      ['Connectivity', 'LAN · Wi-Fi · USB'],
+      ['Data storage', 'Internal patient record storage'],
+    ],
+    features: [
+      { title: "Hospital Workflow", body: "Direct LAN/Wi-Fi printing and digital EMR integration." },
+      { title: "Clinical Screen", body: "High-contrast tabletop screen for monitoring patient status." }
+    ]
+  },
+  '3ch-ecg': {
+    title: "3 Channel ECG",
+    subtitle: "Entry-Level Clinical ECG",
+    description: "Entry-level 3-channel ECG system optimized for rapid acquisition and reporting in smaller clinics, health camps, and general practices. Lightweight and highly efficient.",
+    image: ecg3ChImg,
+    specs: [
+      ['Lead configuration', '3-channel ECG acquisition'],
+      ['Display', 'Clear onboard LCD display'],
+      ['Analysis', 'Automated rhythm labeling'],
+      ['Interface', 'USB and network connectivity'],
+      ['Ideal for', 'High patient volume settings'],
+    ],
+    features: [
+      { title: "Point-of-Care Use", body: "Extremely simple interface, generating fast 3-lead traces." },
+      { title: "Routine Checks", body: "Ideal for high-volume screenings and occupational checkups." }
+    ]
+  },
+  'bipap': {
+    title: "BiPAP",
+    subtitle: "Bilevel Positive Airway Pressure Therapy",
+    description: "Advanced bilevel airway pressure therapy system for sleep apnea treatment and respiratory support. Offers quiet operation, precise ramp time settings, and integrated humidification.",
+    image: bipapImg,
+    specs: [
+      ['Pressure range', '4–25 cmH₂O (IPAP / EPAP)'],
+      ['Therapy modes', 'S · T · S/T · CPAP'],
+      ['Humidification', 'Integrated heated humidifier'],
+      ['Ramp time', '0–45 minutes configurable'],
+      ['Data export', 'Smart card / USB export'],
+      ['Alarm system', 'Apnea · Low pressure · Power failure'],
+    ],
+    features: [
+      { title: "Precise Ventilation", body: "Delivers smooth bilevel support with quiet runtime operation." },
+      { title: "Smart Alarms", body: "Monitors apnea, low pressure, mask disconnects, and power loss." }
+    ]
+  },
+  'sleepsense': {
+    title: "SleepSense",
+    subtitle: "Sleep Diagnostic Monitor",
+    description: "Comprehensive ambulatory sleep study diagnostic monitor for overnight screening. Records SpO₂, airflow, body position, effort belts, and snoring to classify sleep disorders.",
+    image: sleepSenseImg,
+    specs: [
+      ['Monitoring', 'Overnight multi-channel screening'],
+      ['Sensors', 'SpO₂, airflow, position, snore'],
+      ['Analysis', 'AHI, RDI, and ODI calculations'],
+      ['Capacity', '12-hour continuous recording'],
+      ['Application', 'Home testing and sleep lab studies'],
+    ],
+    features: [
+      { title: "Ambulatory Sleep Study", body: "Wearable diagnostic pack for professional sleep reviews." },
+      { title: "Full Event Mapping", body: "Detailed clinical software AHI reports with position maps." }
+    ]
+  },
+  'vt60st': {
+    title: "VT60ST",
+    subtitle: "Transport Ventilator",
+    description: "Compact transport ventilator designed for ambulance services, emergency responders, and ICU transfers. Robust casing with dual power mains/battery input.",
+    image: vt60stImg,
+    specs: [
+      ['Type', 'Transport Ventilator'],
+      ['Ventilation modes', 'VCV · PCV · SIMV · CPAP · PEEP'],
+      ['Tidal volume', '50–2000 mL'],
+      ['Respiratory rate', '1–60 bpm'],
+      ['PEEP', '0–20 cmH₂O'],
+      ['Power', 'AC mains + Internal battery'],
+    ],
+    features: [
+      { title: "Emergency Transfer", body: "Sturdy handle and portable shockproof casing." },
+      { title: "Continuous Monitoring", body: "Track loops, pressure, and breathing patterns during travel." }
+    ]
+  },
+  'vt80st': {
+    title: "VT80ST",
+    subtitle: "ICU / Advanced Ventilator",
+    description: "Advanced ICU critical care ventilator supporting neonatal to adult patients. Features advanced ventilation modes including PRVC and high-precision gas mixing.",
+    image: vt80stImg,
+    specs: [
+      ['Type', 'ICU / Advanced Ventilator'],
+      ['Ventilation modes', 'VCV · PCV · PRVC · SIMV · BiPAP · CPAP'],
+      ['Tidal volume', '20–2500 mL'],
+      ['Respiratory rate', '1–80 bpm'],
+      ['PEEP', '0–25 cmH₂O'],
+      ['Power', 'AC mains + Extended battery'],
+    ],
+    features: [
+      { title: "Critical Care Spec", body: "Full suite of modes (PRVC, BiPAP) for intensive respiratory therapy." },
+      { title: "Dual Battery Backup", body: "Extended backup system for continuous critical care ventilation." }
+    ]
+  },
+  'holter': {
+    title: "Ambulatory Holter Recorder",
+    subtitle: "Long-Term ambulatory ECG system",
+    description: "Dedicated wearable ambulatory ECG recorder capturing 24-48 hours of uninterrupted heart data. Integrates with CardioX analysis module for beat clustering and arrhythmia reviews.",
+    image: holterHwImg,
+    specs: [
+      ['Recording duration', '24–48 hours continuous'],
+      ['Wearability', 'Lightweight compact ambulatory design'],
+      ['Channel configuration', 'Standard multi-channel recording'],
+      ['Analysis suite', 'CardioX RhythmPro Holter Module'],
+      ['Clinical use', 'Transient arrhythmia & ST mapping'],
+    ],
+    features: [
+      { title: "Long-term monitoring", body: "Wearable recorder worn during sleep, daily activity, and exertion." },
+      { title: "CardioX Integration", body: "Beat templates, clustering, Lorenz plots, and complete reports." }
+    ]
+  }
+};
+
+// Client-side A4 spec sheet downloader
+const downloadProductPDF = async (prodKey) => {
+  const product = productCatalog[prodKey];
+  if (!product) return;
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const primaryColor = [26, 107, 255];
+  const accentColor = [0, 212, 170];
+  const textDark = [15, 23, 42];
+  const textSlate = [71, 85, 105];
+  const bgLight = [248, 250, 252];
+
+  const margin = 15;
+  const pageWidth = 210;
+  const contentWidth = pageWidth - (margin * 2);
+
+  // Top header bar
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, pageWidth, 6, 'F');
+
+  let currentY = 16;
+
+  // Deckmount Header text
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...textSlate);
+  doc.text('DECKMOUNT ELECTRONICS  |  CLINICAL SPECIFICATION SHEET', margin, currentY);
+
+  // Divider line
+  currentY += 3;
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.2);
+  doc.line(margin, currentY, margin + contentWidth, currentY);
+
+  currentY += 10;
+
+  // Product Name
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(24);
+  doc.setTextColor(...textDark);
+  doc.text(product.title, margin, currentY);
+
+  // Product Subtitle / Category
+  currentY += 6;
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(...primaryColor);
+  doc.text(product.subtitle || '', margin, currentY);
+
+  currentY += 10;
+
+  // Render Product Image (left half) & Description (right half)
+  const imageWidth = 72;
+  const imageHeight = 50;
+
+  doc.setFillColor(241, 245, 249);
+  doc.roundedRect(margin, currentY, imageWidth, imageHeight, 3, 3, 'F');
+
+  try {
+    const base64Img = await getBase64Image(product.image);
+    doc.addImage(base64Img, 'JPEG', margin + 2, currentY + 2, imageWidth - 4, imageHeight - 4);
+  } catch (err) {
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...textSlate);
+    doc.text('[Image preview not available]', margin + 16, currentY + 26);
+  }
+
+  // Right half description
+  const rightX = margin + 78;
+  const rightWidth = contentWidth - 78;
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...textDark);
+  doc.text('PRODUCT DESCRIPTION', rightX, currentY + 4);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...textSlate);
+  const splitDesc = doc.splitTextToSize(product.description, rightWidth);
+  doc.text(splitDesc, rightX, currentY + 9);
+
+  currentY += imageHeight + 12;
+
+  // Technical Specifications Title
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...textDark);
+  doc.text('TECHNICAL SPECIFICATIONS', margin, currentY);
+
+  currentY += 3;
+  doc.line(margin, currentY, margin + contentWidth, currentY);
+
+  currentY += 6;
+
+  // Specs Table Grid
+  if (product.specs && product.specs.length > 0) {
+    product.specs.forEach(([label, val], idx) => {
+      if (idx % 2 === 0) {
+        doc.setFillColor(...bgLight);
+        doc.rect(margin, currentY - 4, contentWidth, 7, 'F');
+      }
+
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...textDark);
+      doc.text(label, margin + 4, currentY + 1);
+
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...textSlate);
+      doc.text(val, margin + 85, currentY + 1);
+
+      currentY += 7;
+    });
+  }
+
+  currentY += 6;
+
+  // Key Highlights / Features
+  if (product.features && product.features.length > 0) {
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(...textDark);
+    doc.text('KEY CLINICAL HIGHLIGHTS', margin, currentY);
+
+    currentY += 3;
+    doc.line(margin, currentY, margin + contentWidth, currentY);
+
+    currentY += 7;
+
+    product.features.forEach((feat) => {
+      doc.setFillColor(...accentColor);
+      doc.circle(margin + 2, currentY - 1, 0.8, 'F');
+
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...textDark);
+      doc.text(feat.title, margin + 5, currentY);
+
+      if (feat.body) {
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(...textSlate);
+        const splitFeatBody = doc.splitTextToSize(feat.body, contentWidth - 10);
+        doc.text(splitFeatBody, margin + 5, currentY + 3.5);
+        currentY += (splitFeatBody.length * 3.5) + 3;
+      } else {
+        currentY += 5;
+      }
+    });
+  }
+
+  // Footer bar
+  const footerY = 282;
+  doc.setDrawColor(226, 232, 240);
+  doc.line(margin, footerY - 4, margin + contentWidth, footerY - 4);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...textSlate);
+  doc.text('Deckmount Electronics Private Limited  |  www.cardiox.in  |  info@deckmount.in', margin, footerY + 1.5);
+  doc.text('IEC 60601 COMPLIANT DESIGN', margin + contentWidth - 52, footerY + 1.5);
+
+  doc.save(`${product.title.replace(/\s+/g, '_')}_Spec_Sheet.pdf`);
+};
+
+// Spec Sheet downloader button
+const DownloadSpecButton = ({ productId, light = false }) => {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDownloading(true);
+    try {
+      await downloadProductPDF(productId);
+    } catch (err) {
+      console.error(err);
     }
-
-    raf = window.requestAnimationFrame(tick);
-    startedRef.current = true;
-
-    return () => window.cancelAnimationFrame(raf);
-  }, [active, value]);
-
-  return <span className={className}>{display}</span>;
-}
-
-function HeroMetric({ value, label }) {
-  const [active, setActive] = useState(false);
-
-  return (
-    <motion.div
-      className="rounded-3xl border border-white/10 bg-white/8 p-4 shadow-[0_12px_35px_rgba(15,23,42,0.05)] backdrop-blur"
-      viewport={{ once: true, amount: 0.7 }}
-      onViewportEnter={() => setActive(true)}
-    >
-      <div className="text-2xl font-black tracking-tight text-white">
-        <CountUp value={value} active={active} />
-      </div>
-      <div className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-300">
-        {label}
-      </div>
-    </motion.div>
-  );
-}
-
-function ProductShowcase({ product, reverse = false }) {
-  const printRef = useRef(null);
-
-  const handlePrint = () => {
-    const printContent = printRef.current;
-    
-    // Create a temporary container for printing
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${product.title} - Brochure</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-            
-            * { box-sizing: border-box !important; }
-            
-            body { 
-              font-family: 'Inter', sans-serif; 
-              margin: 0;
-              padding: 0;
-              background: white;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-
-            @page {
-              size: A4 portrait;
-              margin: 0;
-            }
-
-            .brochure-page {
-              width: 210mm;
-              min-height: 297mm;
-              padding: 15mm;
-              margin: 0 auto;
-              background: white;
-              overflow: visible !important;
-              position: relative;
-            }
-
-            /* Force visibility for all print elements */
-            .brochure-page * {
-              overflow: visible !important;
-              opacity: 1 !important;
-              visibility: visible !important;
-              transform: none !important;
-            }
-
-            .no-print { display: none !important; }
-            
-            /* Ensure images don't break page */
-            img {
-              max-width: 100% !important;
-              height: auto !important;
-              display: block !important;
-              page-break-inside: avoid;
-            }
-
-            /* Custom Grid for Print */
-            .grid { display: grid !important; }
-            .col-span-12 { grid-column: span 12 / span 12 !important; }
-            .lg\\:col-span-7 { grid-column: span 7 / span 12 !important; }
-            .lg\\:col-span-5 { grid-column: span 5 / span 12 !important; }
-            
-            @media print {
-              .brochure-page {
-                width: 100%;
-                margin: 0;
-                padding: 10mm;
-              }
-              button, .print-btn { display: none !important; }
-            }
-          </style>
-          <script>
-            window.tailwind.config = {
-              theme: {
-                extend: {
-                  colors: {
-                    'brand-blue': '#2563eb',
-                  }
-                }
-              }
-            }
-          </script>
-        </head>
-        <body>
-          <div class="brochure-page">
-            ${printContent.innerHTML}
-          </div>
-          <script>
-            // Remove all interactive elements
-            document.querySelectorAll('button, .print-btn').forEach(el => el.remove());
-            
-            // Function to wait for all images to load
-            function waitForImages() {
-              const images = document.querySelectorAll('img');
-              const promises = Array.from(images).map(img => {
-                if (img.complete) return Promise.resolve();
-                return new Promise(resolve => {
-                  img.onload = resolve;
-                  img.onerror = resolve;
-                });
-              });
-              return Promise.all(promises);
-            }
-
-            window.onload = () => {
-              waitForImages().then(() => {
-                setTimeout(() => {
-                  window.print();
-                  window.close();
-                }, 800);
-              });
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    setDownloading(false);
   };
 
   return (
-    <motion.section
-      {...floatIn}
-      className="relative rounded-[3rem] bg-white/90 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.06)] xl:p-10"
-      id={product.id}
-      ref={printRef}
+    <button
+      onClick={handleDownload}
+      disabled={downloading}
+      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer ${light
+          ? 'bg-[#1A6BFF] text-white hover:bg-[#4285FF] shadow-md shadow-[#1A6BFF]/25'
+          : 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
+        } disabled:opacity-60 disabled:cursor-not-allowed`}
     >
-      {/* Print Button */}
-      <button
-        onClick={handlePrint}
-        className="absolute right-8 top-8 z-30 flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-lg transition-all hover:scale-105 hover:bg-brand-blue sm:right-10 sm:top-10"
-      >
-        <Printer className="h-3.5 w-3.5" />
-        Print Brochure
-      </button>
-
-      <div className="grid grid-cols-12 gap-6 items-start">
-        {/* TOP SECTION: NARRATIVE & SPECS */}
-        <div className={`col-span-12 flex flex-col gap-6 lg:col-span-7 ${reverse ? 'lg:order-2' : 'lg:order-1'}`}>
-          {/* 1. Product Intro */}
-          <div className="rounded-[2.25rem] bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.05)] xl:p-10">
-            <div className="inline-flex items-center gap-2 rounded-full bg-brand-blue/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.35em] text-brand-blue shadow-sm">
-              {product.kicker}
-            </div>
-            <h3 className="mt-4 text-5xl font-black leading-[0.92] tracking-tight text-slate-950 xl:text-6xl">
-              {product.title}
-            </h3>
-            <div className="mt-2 text-xs font-black uppercase tracking-[0.3em] text-slate-400">
-              {product.subtitle}
-            </div>
-            <p className="mt-4 text-xl leading-8 text-slate-700">
-              {product.description}
-            </p>
-            <div className="mt-5 rounded-[1.4rem] bg-gradient-to-br from-blue-50 to-white p-6 shadow-[0_12px_30px_rgba(37,99,235,0.05)]">
-              <div className="text-xs font-black uppercase tracking-[0.35em] text-brand-blue">
-                Identity line
-              </div>
-              <p className="mt-2 text-lg font-semibold leading-8 text-slate-900">
-                “<TypewriterText text={product.quote || 'Built for clinical excellence.'} speed={18} />”
-              </p>
-            </div>
-          </div>
-
-          {/* 2. The Problem We Saw */}
-          {product.problem && (
-            <div className="rounded-[2.25rem] bg-slate-950 p-8 text-white shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
-              <div className="text-xs font-black uppercase tracking-[0.4em] text-blue-200">
-                {product.problem.title}
-              </div>
-              <p className="mt-4 text-lg leading-8 text-slate-200">
-                {product.problem.text}
-              </p>
-              {product.problem.points && (
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {product.problem.points.map((point) => (
-                    <div key={point} className="flex items-center gap-2 rounded-[1.1rem] bg-white/5 px-4 py-3">
-                      <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                      <div className="text-sm font-medium text-slate-300">{point}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {product.problem.others && (
-                <p className="mt-4 text-base leading-7 text-slate-400 border-t border-white/10 pt-4">
-                  {product.problem.others}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* 3. What Others Are Missing */}
-          {product.missing && (
-            <div className="rounded-[2.25rem] bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <div className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">
-                {product.missing.title}
-              </div>
-              <p className="mt-4 text-lg leading-8 text-slate-700">
-                {product.missing.text}
-              </p>
-              {product.missing.points && (
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  {product.missing.points.map((point) => (
-                    <div key={point} className="rounded-[1.15rem] bg-slate-50 px-4 py-4 text-center">
-                      <div className="text-sm font-semibold text-brand-blue">{point}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 4. What We Built Instead */}
-          {product.built && (
-            <div className="rounded-[2.25rem] bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <div className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">
-                {product.built.title}
-              </div>
-              <p className="mt-4 text-lg leading-8 text-slate-700">
-                {product.built.text}
-              </p>
-              {product.built.mobile && (
-                <div className="mt-6">
-                  <div className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-blue mb-3">
-                    Mobile Ecosystem
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {product.built.mobile.map((item) => (
-                      <div key={item} className="rounded-[1.15rem] bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {product.built.desktop && (
-                <div className="mt-6">
-                  <div className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-blue mb-3">
-                    Desktop Review Suite
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {product.built.desktop.map((item) => (
-                      <div key={item} className="rounded-[1.15rem] bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* SIDEBAR: IMAGE & SPECS */}
-        <div className={`col-span-12 flex flex-col gap-6 lg:col-span-5 ${reverse ? 'lg:order-1' : 'lg:order-2'}`}>
-          {product.images && product.images.length > 0 ? (
-            <ProductGallery images={product.images} title={product.title} subtitle={product.subtitle} />
-          ) : (
-            <ImageCard image={product.image} title={product.title} text={product.subtitle} className="bg-gradient-to-br from-white to-slate-50" />
-          )}
-
-          {/* 6. Quick Specs */}
-          <div className="rounded-[2.25rem] bg-slate-950 p-8 text-white shadow-[0_16px_40px_rgba(15,23,42,0.12)]">
-            <div className="text-xs font-black uppercase tracking-[0.4em] text-blue-200">
-              Quick Specs
-            </div>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              {(product.specs || []).slice(0, 6).map(([label, value]) => (
-                <div key={label} className="rounded-[1.15rem] bg-white/5 p-4">
-                  <div className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-200">
-                    {label}
-                  </div>
-                  <div className="mt-2 text-base leading-7 text-slate-200">{value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 8. Real Deployment Environments */}
-          {product.useCases && (
-            <div className="rounded-[2.25rem] bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <div className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">
-                Deployment Environments
-              </div>
-              <div className="mt-5 grid gap-3">
-                {product.useCases.map((useCase) => (
-                  <div key={useCase.title} className="flex items-center justify-between rounded-[1.1rem] bg-slate-50 px-4 py-4 transition-colors hover:bg-slate-100">
-                    <div>
-                      <div className="text-sm font-semibold text-slate-900">{useCase.title}</div>
-                      <div className="text-xs text-slate-500">{useCase.text}</div>
-                    </div>
-                    <div className="text-brand-blue">→</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* BOTTOM SECTION: PERFORMANCE & WORKFLOW */}
-        <div className="col-span-12 mt-6 flex flex-col gap-6 lg:order-3">
-          {/* 5. Why We Perform Better */}
-          {product.better && (
-            <div className="rounded-[2.25rem] bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.05)] xl:p-10">
-              <div className="text-xs font-black uppercase tracking-[0.4em] text-slate-400 text-center mb-8">
-                {product.better.title}
-              </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {product.better.points.map((point) => (
-                  <div key={point.title} className="rounded-[1.5rem] bg-slate-50 p-6 shadow-sm transition-transform hover:scale-[1.01]">
-                    <div className="text-base font-black text-brand-blue uppercase tracking-wider">{point.title}</div>
-                    <p className="mt-3 text-base leading-7 text-slate-700">{point.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 7. Workflow */}
-          {product.workflow && (
-            <div className="rounded-[2.25rem] bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <div className="text-xs font-black uppercase tracking-[0.4em] text-slate-400 mb-6">
-                Clinical Workflow
-              </div>
-              <div className="flex flex-col lg:flex-row gap-6 items-stretch justify-between">
-                {product.workflow.map((step, idx) => (
-                  <div key={step.title} className="flex-1 flex flex-col lg:flex-row items-center gap-4">
-                    <div className="relative rounded-[1.25rem] bg-slate-50 p-5 flex-grow w-full h-full shadow-sm border border-slate-100">
-                      <div className="absolute -top-3 -left-3 flex h-8 w-8 items-center justify-center rounded-full bg-brand-blue text-xs font-black text-white shadow-lg">
-                        {idx + 1}
-                      </div>
-                      <div className="mt-2 text-sm font-black text-slate-900 uppercase tracking-tight">{step.title}</div>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">{step.text}</p>
-                    </div>
-                    {idx < product.workflow.length - 1 && (
-                      <ChevronRight className="h-6 w-6 text-slate-300 hidden lg:block flex-shrink-0" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 9. Future Expansion */}
-          {product.expansion && (
-            <div className="rounded-[2.25rem] bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <div className="text-xs font-black uppercase tracking-[0.4em] text-slate-400 mb-6">
-                {product.expansion.title}
-              </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {product.expansion.points.map((point) => (
-                  <div key={point.title} className="rounded-[1.25rem] bg-slate-50 p-5">
-                    <div className="text-sm font-semibold text-brand-blue">{point.title}</div>
-                    <p className="mt-2 text-base leading-7 text-slate-700">{point.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </motion.section>
+      <Download className={`h-3.5 w-3.5 ${downloading ? 'animate-bounce' : ''}`} />
+      {downloading ? 'Generating PDF...' : 'Download Spec Sheet'}
+    </button>
   );
-}
+};
 
-function SpecHero() {
+// Generic product section — reused across all chapters
+const ProductSection = ({ productId, number, label, title, accentColor = '#1A6BFF', description, image, imageAlt, specs, features, pills, dark = true, reverse = false, extra }) => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-10%' });
+  const imgVariant = reverse ? slideLeft : slideRight;
+  const bg = dark ? 'bg-[#050A14]' : 'bg-[#F8FAFC]';
   return (
-    <section id="specifications" className="py-20">
-      <SectionHeader
-        kicker="Product specification"
-        title="Rhythm Ultra Max specification sheet."
-        text="The core technical data from the PDF is presented here as a clean product specification section for the website."
-      />
+    <section id={label.toLowerCase().replace(/[\s·\/]+/g, '-')} className={`relative ${bg} py-28 lg:py-36 overflow-hidden`}>
+      {dark ? <GridBg /> : <LightGrid />}
+      {dark && <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at ${reverse ? '80%' : '20%'} 50%,${accentColor}06 0%,transparent 60%)` }} />}
+      <div ref={ref} className="relative z-10">
+        <Wrap>
+          <motion.div variants={stagger()} initial="hidden" animate={inView ? 'visible' : 'hidden'}>
+            <motion.div variants={fadeUp}><ChLabel number={number} title={label} light={!dark} /></motion.div>
+            <div className={`grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center`}>
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-        <motion.div
-          {...floatIn}
-          className="overflow-hidden rounded-[2.5rem] border border-white/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
-        >
-          <div className="relative bg-gradient-to-br from-slate-950 to-slate-800 p-6 text-white">
-            <p className="text-xs font-black uppercase tracking-[0.4em] text-blue-200">
-              ADVANCED FEATURES
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <h3 className="text-4xl font-black tracking-tight">Engineered for Clinical Excellence</h3>
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-[0.3em] text-slate-950">
-                FLUKE TESTED
-              </span>
+              {/* Content */}
+              <div className={reverse ? 'lg:order-2' : ''}>
+                <motion.h2 variants={fadeUp} className={`text-5xl lg:text-[3.5rem] font-black leading-none tracking-tight mb-6 ${dark ? 'text-white' : 'text-slate-900'}`}
+                  dangerouslySetInnerHTML={{ __html: title }} />
+                <motion.p variants={fadeUp} className={`text-lg leading-relaxed mb-8 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{description}</motion.p>
+
+                {specs && (
+                  <motion.div variants={fadeUp} className={`rounded-2xl border overflow-hidden mb-8 ${dark ? 'bg-white/[.03] border-white/[.06]' : 'bg-white border-slate-100 shadow-sm'}`}>
+                    <div className="px-6 pt-5 pb-3"><span className="text-[10px] font-black tracking-[.35em] uppercase" style={{ color: accentColor }}>Specifications</span></div>
+                    <div className="px-6 pb-4">{specs.map(([l, v]) => <SpecRow key={l} label={l} value={v} light={!dark} />)}</div>
+                  </motion.div>
+                )}
+
+                {features && (
+                  <motion.div variants={stagger(.05)} className="space-y-3 mb-8">
+                    {features.map(({ icon: Icon, title: t, body }) => (
+                      <motion.div key={t} variants={fadeUp} className={`flex gap-4 p-4 rounded-2xl ${dark ? 'bg-white/[.03] border border-white/[.06] hover:border-white/20' : 'bg-white border border-slate-100 shadow-sm hover:shadow-md'} transition-all duration-300`}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${accentColor}15` }}>
+                          <Icon className="h-5 w-5" style={{ color: accentColor }} />
+                        </div>
+                        <div>
+                          <div className={`font-bold text-sm mb-0.5 ${dark ? 'text-white' : 'text-slate-900'}`}>{t}</div>
+                          <div className={`text-sm leading-relaxed ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{body}</div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+
+                {pills && (
+                  <motion.div variants={fadeUp} className="flex flex-wrap gap-2 mb-6">
+                    {pills.map(p => <Pill key={p} dark={dark}>{p}</Pill>)}
+                  </motion.div>
+                )}
+
+                {productId && (
+                  <motion.div variants={fadeUp} className="mt-6">
+                    <DownloadSpecButton productId={productId} light={!dark} />
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Image */}
+              <motion.div variants={imgVariant} className={`relative ${reverse ? 'lg:order-1' : ''}`}>
+                <div className={`relative rounded-3xl overflow-hidden border shadow-2xl ${dark ? 'bg-gradient-to-br from-[#0A1428] to-[#050A14] border-white/[.06] shadow-black/60' : 'bg-slate-50 border-slate-200 shadow-slate-200/40'}`}>
+                  <img src={image} alt={imageAlt} className="w-full h-[460px] object-contain p-6 opacity-90" />
+                  {dark && <div className="absolute inset-0 bg-gradient-to-t from-[#050A14]/60 to-transparent" />}
+                  {dark && <div className="absolute bottom-5 left-5">
+                    <div className="text-[9px] font-black tracking-[.35em] uppercase mb-1" style={{ color: accentColor }}>{label}</div>
+                    <div className="text-white font-bold">{imageAlt}</div>
+                  </div>}
+                </div>
+              </motion.div>
             </div>
-            <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-              Rhythm Ultra Max combines cutting-edge technology with practical design to deliver accurate, reliable, and accessible cardiac diagnostics anywhere, anytime.
-            </p>
-          </div>
-          <div className="p-5">
-            <img
-              src={pdfImg347}
-              alt="Rhythm Ultra Max product"
-              className="h-[500px] w-full object-contain rounded-[1.5rem] bg-gradient-to-br from-slate-50 to-white p-4"
-              loading="eager"
-              decoding="async"
-            />
-          </div>
-        </motion.div>
-
-        <SpecSheet groups={ultraMaxSpecGroups} />
+            {extra}
+          </motion.div>
+        </Wrap>
       </div>
     </section>
   );
-}
+};
 
-function App() {
-  const globalPrintRef = useRef(null);
-
-  const handleGlobalPrint = () => {
-    const printContent = globalPrintRef.current;
-    
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Deckmount Clinical Device Portfolio</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-            
-            * { box-sizing: border-box !important; }
-            
-            body { 
-              font-family: 'Inter', sans-serif; 
-              margin: 0;
-              padding: 0;
-              background: white;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-
-            @page {
-              size: A4 portrait;
-              margin: 0;
-            }
-
-            .brochure-page {
-              width: 210mm;
-              margin: 0 auto;
-              background: white;
-              overflow: visible !important;
-            }
-
-            /* Global Print Styles */
-            section {
-              page-break-after: always;
-              padding: 15mm !important;
-              width: 210mm !important;
-              min-height: 297mm !important;
-            }
-
-            .no-print, button, .print-btn { display: none !important; }
-            
-            img {
-              max-width: 100% !important;
-              height: auto !important;
-              display: block !important;
-              page-break-inside: avoid;
-            }
-
-            .grid { display: grid !important; }
-            .col-span-12 { grid-column: span 12 / span 12 !important; }
-            .lg\\:col-span-7 { grid-column: span 7 / span 12 !important; }
-            .lg\\:col-span-5 { grid-column: span 5 / span 12 !important; }
-            
-            @media print {
-              .brochure-page { width: 100%; margin: 0; }
-            }
-          </style>
-          <script>
-            window.tailwind.config = {
-              theme: {
-                extend: {
-                  colors: {
-                    'brand-blue': '#2563eb',
-                  }
-                }
-              }
-            }
-          </script>
-        </head>
-        <body>
-          <div class="brochure-page">
-            ${printContent.innerHTML}
-          </div>
-          <script>
-            document.querySelectorAll('button, .print-btn, header, footer, #specifications, .max-w-5xl').forEach(el => el.remove());
-            
-            function waitForImages() {
-              const images = document.querySelectorAll('img');
-              const promises = Array.from(images).map(img => {
-                if (img.complete) return Promise.resolve();
-                return new Promise(resolve => {
-                  img.onload = resolve;
-                  img.onerror = resolve;
-                });
-              });
-              return Promise.all(promises);
-            }
-
-            window.onload = () => {
-              waitForImages().then(() => {
-                setTimeout(() => {
-                  window.print();
-                  window.close();
-                }, 1000);
-              });
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
-
+// Category banner between product groups
+const CategoryBanner = ({ badge, heading, sub, color }) => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-10%' });
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 text-slate-900" ref={globalPrintRef}>
-      <div className="w-full px-8 py-8 xl:px-12 2xl:px-16">
-        <header className="rounded-[2rem] bg-slate-950/90 px-6 py-5 shadow-[0_12px_40px_rgba(15,23,42,0.18)] backdrop-blur-xl">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-slate-950 shadow-lg">
-                <Heart className="h-5 w-5" />
-              </div>
-              <div className="leading-none">
-                <div className="text-sm font-black uppercase tracking-[0.28em] text-white">
-                  Clinical Device Showcase
-                </div>
-                <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.35em] text-blue-300">
-                  Internal product story
-                </div>
-              </div>
+    <section ref={ref} className="relative bg-[#03070F] py-20 overflow-hidden">
+      <GridBg op={.015} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 50% 100%,${color}08 0%,transparent 60%)` }} />
+      <Wrap>
+        <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={stagger()} className="text-center">
+          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-5" style={{ background: `${color}0F`, borderColor: `${color}25` }}>
+            <span className="text-[10px] font-black tracking-widest uppercase" style={{ color }}>{badge}</span>
+          </motion.div>
+          <motion.h2 variants={fadeUp} className="text-4xl lg:text-6xl font-black text-white leading-none tracking-tight mb-4">{heading}</motion.h2>
+          <motion.p variants={fadeUp} className="text-lg text-slate-500 max-w-2xl mx-auto">{sub}</motion.p>
+        </motion.div>
+      </Wrap>
+    </section>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NAV BAR
+// ═══════════════════════════════════════════════════════════════════════════════
+const NavBar = () => {
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const h = () => setScrolled(window.scrollY > 60);
+    window.addEventListener('scroll', h, { passive: true });
+    return () => window.removeEventListener('scroll', h);
+  }, []);
+  const links = [
+    { label: 'ECG Suite', href: '#ultramax' },
+    { label: 'CardioX', href: '#cardiox' },
+    { label: 'Respiratory', href: '#respiratory' },
+    { label: 'Ventilators', href: '#ventilators' },
+  ];
+  return (
+    <motion.nav initial={{ y: -80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: .6, delay: .15 }}
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${scrolled ? 'bg-[#050A14]/80 backdrop-blur-2xl border-b border-white/[.06]' : 'bg-transparent'}`}>
+      <Wrap>
+        <div className="flex items-center justify-between h-16 lg:h-20">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1A6BFF] to-[#00D4AA] flex items-center justify-center shadow-lg shadow-[#1A6BFF]/30">
+              <Activity className="h-4 w-4 text-white" />
             </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleGlobalPrint}
-                className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-950 shadow-lg transition-all hover:scale-105 hover:bg-brand-blue hover:text-white"
-              >
-                <Printer className="h-3.5 w-3.5" />
-                Download Portfolio PDF
-              </button>
-              <div className="hidden text-[11px] font-black uppercase tracking-[0.3em] text-slate-300 lg:block">
-                Six products. One narrative.
-              </div>
+            <div className="leading-none">
+              <div className="text-[11px] font-black tracking-[.25em] text-white uppercase">Deckmount</div>
+              <div className="text-[9px] text-slate-500 tracking-[.2em] uppercase mt-0.5">Electronics</div>
             </div>
           </div>
-        </header>
-
-        <section className="grid items-center gap-16 py-24 xl:grid-cols-[1.08fr_0.92fr] xl:gap-14 xl:py-28">
-          <motion.div {...floatIn} className="max-w-5xl">
-            <p className="text-xs font-black uppercase tracking-[0.45em] text-brand-blue">
-              Internal launch story
-            </p>
-            <h1 className="mt-4 text-6xl font-black leading-[0.92] tracking-tight text-slate-950 md:text-7xl xl:text-[94px]">
-              Hospital-grade diagnostics that can actually travel.
-            </h1>
-            <p className="mt-5 max-w-3xl text-xl leading-8 text-slate-700 md:text-2xl">
-              Four products. Short positioning. Real specs. Clear workflows. Built for field deployment,
-              emergency response, clinics, and connected follow-up.
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a
-                href="#devices"
-                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-xs font-black uppercase tracking-[0.22em] text-white transition-transform hover:scale-[1.02]"
-              >
-                View product cards
-                <ArrowRight className="h-4 w-4" />
-              </a>
-            </div>
-
-            <div className="mt-7">
-              <PillGroup
-                items={[
-                  'Portable 12-lead ECG',
-                  'Home sleep testing',
-                  'CPAP / BiPAP therapy',
-                  '12-channel ECG',
-                  'Rhythm UltraMax Pro workflow',
-                  'CardioX (RhythmPro)',
-                  'Field deployment',
-                ]}
-              />
-            </div>
+          <div className="hidden lg:flex items-center gap-8">
+            {links.map(l => <a key={l.label} href={l.href} className="text-sm text-slate-500 hover:text-white transition-colors tracking-wide">{l.label}</a>)}
+          </div>
+          <div className="hidden lg:flex items-center gap-3">
+            <a href="#overview" className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold bg-[#1A6BFF] text-white hover:bg-[#4285FF] transition-colors shadow-lg shadow-[#1A6BFF]/30">
+              All Products <ArrowRight className="h-3.5 w-3.5" />
+            </a>
+          </div>
+          <button onClick={() => setOpen(o => !o)} className="lg:hidden text-slate-400 hover:text-white">
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+        {open && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lg:hidden py-4 border-t border-white/[.06] space-y-3">
+            {links.map(l => <a key={l.label} href={l.href} onClick={() => setOpen(false)} className="block text-sm text-slate-400 hover:text-white py-1">{l.label}</a>)}
           </motion.div>
+        )}
+      </Wrap>
+    </motion.nav>
+  );
+};
 
-          <motion.div
-            {...floatIn}
-            transition={{ duration: 0.7, ease: 'easeOut', delay: 0.1 }}
-            className="rounded-[2rem] bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur"
-          >
-              <div className="grid gap-5 sm:grid-cols-2">
-                {[
-                  { title: 'Where it is used', text: 'Ambulances, rural camps, clinics, and home follow-up.' },
-                  { title: 'Why it matters', text: 'Shorter demos, clearer value, better clinical trust.' },
-                  { title: 'Workflow', text: 'Device, app, cloud, report, and doctor review.' },
-                  { title: 'What buyers want', text: 'Real specs, trusted visuals, and simple comparisons.' },
-                ].map((item) => (
-                <div key={item.title} className="rounded-[1.35rem] bg-slate-50 p-6 text-slate-950">
-                  <div className="text-xs font-black uppercase tracking-[0.35em] text-brand-blue">
-                    {item.title}
-                  </div>
-                  <p className="mt-2 text-base leading-7 text-slate-700">{item.text}</p>
+// ═══════════════════════════════════════════════════════════════════════════════
+// HERO
+// ═══════════════════════════════════════════════════════════════════════════════
+const Hero = () => {
+  const { scrollY } = useScroll();
+  const y = useTransform(scrollY, [0, 700], [0, 140]);
+  const op = useTransform(scrollY, [0, 500], [1, 0]);
+  return (
+    <section className="relative min-h-screen flex flex-col justify-center bg-[#050A14] overflow-hidden">
+      <GridBg />
+      <AnimatedECG />
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(26,107,255,.07) 0%,transparent 65%)' }} />
+      <div className="absolute right-0 top-0 w-[500px] h-[500px] pointer-events-none" style={{ background: 'radial-gradient(circle at top right,rgba(0,212,170,.04) 0%,transparent 60%)' }} />
+
+      <motion.div style={{ y, opacity: op }} className="relative z-10">
+        <Wrap className="py-40 lg:py-48">
+          <motion.div variants={stagger(.15)} initial="hidden" animate="visible">
+            <motion.div variants={fadeUp} className="flex items-center gap-3 mb-12">
+              <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#00D4AA]/8 border border-[#00D4AA]/20">
+                <PulsingDot color="#00D4AA" size={5} /><span className="text-xs font-semibold text-[#00D4AA] tracking-[.15em] uppercase">Product 2026</span>
+              </div>
+            </motion.div>
+            <motion.h1 variants={fadeUp} className="text-[clamp(3.5rem,10vw,8rem)] font-black text-white leading-none tracking-tight mb-8">
+              Clinical devices
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1A6BFF] via-[#4D8FFF] to-[#00D4AA]">built for India.</span>
+            </motion.h1>
+            <motion.p variants={fadeUp} className="max-w-2xl text-xl lg:text-2xl text-slate-400 leading-relaxed mb-14">
+              From portable 12-lead ECG and AI-assisted analysis to BIPAP respiratory therapy and precision ventilation — a complete clinical ecosystem by Deckmount Electronics.
+            </motion.p>
+            <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-8 mb-14">
+              {[{ icon: Activity, label: 'ECG Suite' }, { icon: Wind, label: 'Respiratory' }, { icon: Gauge, label: 'Ventilation' }].map(({ icon: Icon, label }) => (
+                <div key={label} className="flex items-center gap-2.5">
+                  <Icon className="h-4 w-4 text-[#00D4AA]" />
+                  <span className="text-sm font-semibold text-slate-300">{label}</span>
                 </div>
               ))}
+            </motion.div>
+            <motion.div variants={fadeUp} className="flex flex-wrap gap-4">
+              <a href="#overview" className="flex items-center gap-2 px-7 py-3.5 rounded-full font-bold bg-[#1A6BFF] text-white hover:bg-[#4285FF] transition-all shadow-xl shadow-[#1A6BFF]/30 hover:-translate-y-0.5">
+                See All Products <ArrowRight className="h-4 w-4" />
+              </a>
+              <a href="#ultramax" className="flex items-center gap-2 px-7 py-3.5 rounded-full font-bold text-white border border-white/10 hover:border-white/25 hover:bg-white/5 transition-all">
+                ECG Suite
+              </a>
+            </motion.div>
+          </motion.div>
+        </Wrap>
+      </motion.div>
+      <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 2.2, repeat: Infinity }} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+        <span className="text-[10px] text-slate-700 tracking-[.35em] uppercase">Scroll</span>
+        <ChevronDown className="h-4 w-4 text-slate-700" />
+      </motion.div>
+    </section>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ALL PRODUCTS GRID
+// ═══════════════════════════════════════════════════════════════════════════════
+const ProductsOverview = () => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-10%' });
+  const products = [
+    { id: 'ultramax', cat: 'ECG Suite', title: 'Rhythm UltraMax', sub: 'Portable 12-Lead ECG', icon: Radio, color: '#1A6BFF', img: rhythmUltraMaxImg },
+    { id: 'cardiox', cat: 'ECG Suite', title: 'CardioX RhythmPro', sub: 'Desktop Clinical Suite', icon: Monitor, color: '#1A6BFF', img: cardioxDashImg },
+    { id: '12ch-ecg', cat: 'ECG Suite', title: '12 Channel ECG', sub: 'Hospital Tabletop System', icon: Activity, color: '#1A6BFF', img: ecg12ChImg },
+    { id: '3ch-ecg', cat: 'ECG Suite', title: '3 Channel ECG', sub: 'Entry-Level Clinical ECG', icon: Activity, color: '#1A6BFF', img: ecg3ChImg },
+    { id: 'respiratory', cat: 'Respiratory', title: 'BiPAP', sub: 'Bilevel Pressure Therapy', icon: Wind, color: '#00D4AA', img: bipapImg },
+    { id: 'sleepsense', cat: 'Respiratory', title: 'SleepSense', sub: 'Sleep Diagnostic Monitor', icon: Moon, color: '#00D4AA', img: sleepSenseImg },
+    { id: 'ventilators', cat: 'Ventilation', title: 'VT60ST', sub: 'Transport Ventilator', icon: Gauge, color: '#F97316', img: vt60stImg },
+    { id: 'ventilators', cat: 'Ventilation', title: 'VT80ST', sub: 'ICU / Advanced Ventilator', icon: Gauge, color: '#F97316', img: vt80stImg },
+  ];
+  return (
+    <section id="overview" className="relative bg-[#F8FAFC] py-28 lg:py-36 overflow-hidden">
+      <LightGrid />
+      <div ref={ref} className="relative z-10">
+        <Wrap>
+          <motion.div variants={stagger()} initial="hidden" animate={inView ? 'visible' : 'hidden'}>
+            <motion.div variants={fadeUp}><ChLabel title="Product Portfolio" light /></motion.div>
+            <motion.h2 variants={fadeUp} className="text-5xl lg:text-7xl font-black text-slate-900 leading-none tracking-tight mb-5 max-w-4xl">
+              Eight devices.
+              <br /><span className="text-[#1A6BFF]">One vision.</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} className="text-xl text-slate-500 mb-20 max-w-2xl leading-relaxed">
+              Deckmount builds clinical-grade medical devices across three product families — ECG acquisition, respiratory therapy, and critical care ventilation.
+            </motion.p>
+            <motion.div variants={stagger(.04)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {products.map((p, i) => (
+                <motion.a key={`${p.id}-${i}`} href={`#${p.id}`} variants={scaleIn}
+                  className="group relative rounded-3xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 hover:-translate-y-1">
+                  <div className="relative h-44 overflow-hidden">
+                    <img src={p.img} alt={p.title} className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent" />
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ background: `${p.color}20`, border: `1px solid ${p.color}30` }}>
+                      <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: p.color }}>{p.cat}</span>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <div className="font-black text-slate-900 mb-0.5">{p.title}</div>
+                    <div className="text-sm text-slate-500">{p.sub}</div>
+                  </div>
+                </motion.a>
+              ))}
+            </motion.div>
+          </motion.div>
+        </Wrap>
+      </div>
+    </section>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ECG SUITE SECTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Ecosystem diagram
+const EcosystemOverview = () => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-10%' });
+  return (
+    <section id="ultramax" className="relative bg-[#050A14] py-28 lg:py-36 overflow-hidden">
+      <GridBg />
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(26,107,255,.06) 0%,transparent 65%)' }} />
+      <div ref={ref} className="relative z-10">
+        <Wrap>
+          <motion.div variants={stagger()} initial="hidden" animate={inView ? 'visible' : 'hidden'}>
+            <motion.div variants={fadeUp}><ChLabel number="01" title="Rhythm UltraMax Ecosystem" /></motion.div>
+            <motion.h2 variants={fadeUp} className="text-5xl lg:text-7xl font-black text-white leading-none tracking-tight mb-5 max-w-4xl">
+              One ecosystem.
+              <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1A6BFF] to-[#00D4AA]">Complete cardiac care.</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} className="text-xl text-slate-400 mb-20 max-w-2xl leading-relaxed">
+              Rhythm UltraMax hardware sends data via <strong className="text-white">BLE</strong> to the mobile app for instant field review, and via <strong className="text-white">USB</strong> to CardioX for deep clinical analysis — including 24–48 hour Holter monitoring.
+            </motion.p>
+            {/* 3-node diagram */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-0 items-start">
+              <motion.div variants={slideLeft} className="flex flex-col items-center text-center p-8 rounded-3xl bg-white/[.03] border border-white/[.07] hover:border-[#1A6BFF]/30 transition-all">
+                <div className="w-14 h-14 rounded-2xl bg-[#1A6BFF]/10 border border-[#1A6BFF]/15 flex items-center justify-center mb-4"><Smartphone className="h-7 w-7 text-[#1A6BFF]" /></div>
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#00D4AA]/8 border border-[#00D4AA]/15 mb-3">
+                  <Bluetooth className="h-3 w-3 text-[#00D4AA]" /><span className="text-[9px] font-black text-[#00D4AA] tracking-widest uppercase">BLE 5.0</span>
+                </div>
+                <h3 className="text-lg font-black text-white mb-2">Mobile Companion App</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">Real-time ECG telemetry to smartphone. Instant reports under 10 seconds.</p>
+              </motion.div>
+              <motion.div variants={scaleIn} className="flex flex-col items-center text-center px-8">
+                <div className="relative mb-5">
+                  <motion.div animate={{ scale: [1, 1.03, 1] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                    className="w-44 h-44 lg:w-52 lg:h-52 rounded-[2rem] bg-gradient-to-br from-[#0A1428] to-[#050A14] border-2 border-[#1A6BFF]/20 overflow-hidden shadow-2xl shadow-[#1A6BFF]/15">
+                    <img src={rhythmUltraMaxImg} alt="Rhythm UltraMax" className="w-full h-full object-contain p-4 opacity-90" />
+                  </motion.div>
+                  <motion.div animate={{ scale: [1, 1.18, 1], opacity: [.4, 0, .4] }} transition={{ duration: 3, repeat: Infinity }} className="absolute inset-0 rounded-[2rem] border-2 border-[#1A6BFF]/30" />
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 bg-[#050A14] rounded-full border border-[#1A6BFF]/30">
+                    <PulsingDot color="#1A6BFF" size={4} /><span className="text-[9px] font-black text-[#1A6BFF] tracking-widest uppercase">Hardware Core</span>
+                  </div>
+                </div>
+                <h3 className="text-xl font-black text-white mb-1">Rhythm UltraMax</h3>
+                <p className="text-xs text-slate-500 max-w-[180px]">12-lead clinical ECG. 24-bit. BLE + USB.</p>
+              </motion.div>
+              <motion.div variants={slideRight} className="flex flex-col items-center text-center p-8 rounded-3xl bg-white/[.03] border border-white/[.07] hover:border-[#00D4AA]/30 transition-all">
+                <div className="w-14 h-14 rounded-2xl bg-[#00D4AA]/10 border border-[#00D4AA]/15 flex items-center justify-center mb-4"><Monitor className="h-7 w-7 text-[#00D4AA]" /></div>
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#1A6BFF]/8 border border-[#1A6BFF]/15 mb-3">
+                  <Usb className="h-3 w-3 text-[#1A6BFF]" /><span className="text-[9px] font-black text-[#1A6BFF] tracking-widest uppercase">USB Direct</span>
+                </div>
+                <h3 className="text-lg font-black text-white mb-2">CardioX Desktop Suite</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">30+ arrhythmia detection, HRV, AI Clinical Assistant, and Holter monitoring.</p>
+              </motion.div>
             </div>
           </motion.div>
-        </section>
-
-        <section id="devices" className="space-y-12 pb-16 xl:space-y-16">
-          {productShowcases.map((product, index) => (
-            <ProductShowcase
-              key={product.id}
-              product={product}
-              reverse={index % 2 === 1}
-            />
-          ))}
-        </section>
-
-        {/* Strong Closing Ecosystem Statement */}
-        <motion.section
-          {...floatIn}
-          className="my-16 rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950 p-10 text-white shadow-[0_24px_60px_rgba(15,23,42,0.15)] text-center max-w-6xl mx-auto border border-white/5"
-        >
-          <h3 className="text-2xl md:text-3xl font-black leading-tight tracking-tight max-w-4xl mx-auto text-slate-100">
-            From emergency response to advanced cardiology, the Rhythm UltraMax ecosystem delivers a complete ECG workflow—from acquisition and AI-assisted interpretation to secure reporting and long-term Holter analysis—all within a single integrated platform.
-          </h3>
-        </motion.section>
-
-        <footer className="pb-8">
-        </footer>
+        </Wrap>
       </div>
-    </main>
+    </section>
+  );
+};
+
+// Rhythm UltraMax hardware detail
+const ChapterUltraMax = () => (
+  <ProductSection
+    productId="rhythm-ultramax"
+    number="" label="Rhythm UltraMax · Portable 12-Lead ECG"
+    title="The device that<br/><span style='background:linear-gradient(to right,#1A6BFF,#00D4AA);-webkit-background-clip:text;-webkit-text-fill-color:transparent'>acquires it all.</span>"
+    accentColor="#1A6BFF"
+    description="Rhythm UltraMax captures all 12 leads simultaneously with hospital-grade 24-bit ADC precision. At 298 grams, it deploys in ambulances, rural clinics, emergency response, and bedside care — wherever patients need it."
+    image={rhythmUltraMaxImg} imageAlt="Rhythm UltraMax RHYUM01"
+    specs={[
+      ['Lead configuration', '12-lead simultaneous ECG'],
+      ['Sampling rate', '1,000 SPS per channel'],
+      ['ADC resolution', '24-bit'],
+      ['Wireless', 'Bluetooth LE 5.0'],
+      ['Wired', 'USB direct to CardioX'],
+      ['Battery life', '8 hours continuous acquisition'],
+      ['Weight', '298 grams'],
+      ['Standards', 'IEC 60601 compliant design'],
+    ]}
+    pills={['Ambulance ECG', 'Emergency Response', 'Rural Outreach', 'Clinic & OPD', 'Home Follow-up']}
+    dark reverse
+  />
+);
+
+// How It Connects
+const HowItConnects = () => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-10%' });
+  const Card = ({ pathLabel, pathColor, ConnIcon, title, desc, features }) => (
+    <motion.div variants={fadeUp} className="rounded-3xl bg-gradient-to-br from-[#0A1428] to-[#050A14] border border-white/[.07] p-8 relative overflow-hidden">
+      <GridBg op={.015} />
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${pathColor}15`, border: `1px solid ${pathColor}25` }}>
+            <ConnIcon className="h-5 w-5" style={{ color: pathColor }} /></div>
+          <div>
+            <div className="text-[10px] font-black tracking-widest uppercase" style={{ color: pathColor }}>{pathLabel}</div>
+          </div>
+        </div>
+        <h3 className="text-2xl font-black text-white mb-3">{title}</h3>
+        <p className="text-slate-400 text-sm leading-relaxed mb-6">{desc}</p>
+        <div className="space-y-2">
+          {features.map(f => (
+            <div key={f} className="flex items-start gap-3">
+              <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: `${pathColor}20` }}><Check className="h-2.5 w-2.5" style={{ color: pathColor }} /></div>
+              <span className="text-sm text-slate-300">{f}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+  return (
+    <section className="relative bg-[#F8FAFC] py-28 lg:py-36 overflow-hidden">
+      <LightGrid />
+      <div ref={ref} className="relative z-10"><Wrap>
+        <motion.div variants={stagger()} initial="hidden" animate={inView ? 'visible' : 'hidden'}>
+          <motion.div variants={fadeUp}><ChLabel title="Connectivity" light /></motion.div>
+          <motion.h2 variants={fadeUp} className="text-5xl lg:text-7xl font-black text-slate-900 leading-none tracking-tight mb-5">One device.<br /><span className="text-[#1A6BFF]">Two clinical pathways.</span></motion.h2>
+          <motion.p variants={fadeUp} className="text-xl text-slate-500 mb-16 max-w-2xl leading-relaxed">Rhythm UltraMax connects wirelessly to the mobile app for field use, or directly via USB to the full CardioX desktop clinical suite.</motion.p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card pathLabel="Path A · BLE 5.0 Wireless" pathColor="#1A6BFF" ConnIcon={Smartphone} title="Field Clinical Review"
+              desc="Real-time ECG telemetry streamed to Rhythm UltraMax Pro mobile app. Clinicians get instant rhythm analysis and shareable PDF reports within seconds."
+              features={['Real-time live waveform on smartphone', 'ECG reports generated under 10 seconds', 'WhatsApp · Email · PDF delivery', 'Rapid rhythm disorder screening', 'Cloud sync for remote doctor review']} />
+            <Card pathLabel="Path B · USB Direct" pathColor="#00D4AA" ConnIcon={Monitor} title="Deep Clinical Analysis"
+              desc="Connected via USB to CardioX desktop — full diagnostic suite with real-time 12-lead visualization, advanced arrhythmia analysis, and AI-assisted reporting."
+              features={['Real-time 12-lead ECG visualization', '30+ clinically significant arrhythmia tools', 'HRV analysis — Lorenz / Poincaré plots', 'AI Clinical Assistant and report drafting', 'Offline-first with automatic cloud sync']} />
+          </div>
+        </motion.div>
+      </Wrap></div>
+    </section>
+  );
+};
+
+// CardioX Desktop
+const ChapterCardioX = () => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-10%' });
+  const features = [
+    { icon: Activity, title: '30+ Arrhythmia Tools', body: 'Detects 30+ clinically significant rhythm abnormalities for comprehensive cardiac screening.' },
+    { icon: BarChart3, title: 'HRV Analysis', body: 'Lorenz / Poincaré scatter plots and full heart rate variability analysis included.' },
+    { icon: Brain, title: 'AI Clinical Assistant', body: 'AI-assisted clinical report drafting and ECG interpretation support for clinicians.' },
+    { icon: Zap, title: 'Hyperkalemia Screening', body: 'Fast 30-second capture test for peaked T-wave Hyperkalemia pattern detection.' },
+    { icon: Cloud, title: 'Offline-First Sync', body: 'Patient records safely stored during outages. Automatic sync when connectivity returns.' },
+    { icon: Shield, title: 'Secure Licensing', body: 'Hardware-bound license encryption with multi-pillar security verification.' },
+  ];
+  return (
+    <section id="cardiox" className="relative bg-[#050A14] py-28 lg:py-36 overflow-hidden">
+      <GridBg />
+      <div ref={ref} className="relative z-10"><Wrap>
+        <motion.div variants={stagger()} initial="hidden" animate={inView ? 'visible' : 'hidden'}>
+          <motion.div variants={fadeUp}><ChLabel number="02" title="CardioX RhythmPro · Desktop Clinical Suite" /></motion.div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end mb-14">
+            <div>
+              <motion.h2 variants={fadeUp} className="text-5xl lg:text-[3.5rem] font-black text-white leading-none tracking-tight mb-5">Where data<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1A6BFF] to-[#00D4AA]">becomes diagnosis.</span></motion.h2>
+              <motion.p variants={fadeUp} className="text-xl text-slate-400 leading-relaxed mb-6">A cross-platform desktop application built for diagnostic labs, cardiology units, and hospital review workflows.</motion.p>
+              <motion.div variants={fadeUp} className="mb-8">
+                <DownloadSpecButton productId="cardiox" light={false} />
+              </motion.div>
+            </div>
+            <motion.div variants={slideRight}>
+              <div className="rounded-3xl overflow-hidden border border-white/[.06] shadow-2xl">
+                <img src={cardioxDashImg} alt="CardioX Dashboard" className="w-full h-[250px] object-contain p-2" />
+              </div>
+            </motion.div>
+          </div>
+          <motion.div variants={stagger(.05)} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {features.map(f => (
+              <motion.div key={f.title} variants={scaleIn} className="rounded-2xl p-5 border bg-white/[.03] border-white/[.07] hover:bg-white/[.06] hover:border-white/[.15] transition-all duration-300">
+                <div className="w-9 h-9 rounded-xl bg-[#1A6BFF]/10 flex items-center justify-center mb-3"><f.icon className="h-4 w-4 text-[#1A6BFF]" /></div>
+                <div className="font-bold text-white text-sm mb-1">{f.title}</div>
+                <p className="text-slate-400 text-xs leading-relaxed">{f.body}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+          <motion.div variants={fadeUp} className="rounded-3xl overflow-hidden border border-white/[.06] shadow-2xl relative">
+            <img src={cardiox12LeadImg} alt="12-Lead Monitor" className="w-full h-[380px] object-contain p-4" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14]/70 to-transparent" />
+            <div className="absolute bottom-6 left-6">
+              <div className="text-[9px] font-black text-[#00D4AA] tracking-widest uppercase mb-1">Live Clinical Display</div>
+              <div className="text-white font-black text-xl">Simultaneous 12-Lead ECG Monitor</div>
+            </div>
+          </motion.div>
+        </motion.div>
+      </Wrap></div>
+    </section>
+  );
+};
+
+// Holter
+const ChapterHolter = () => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-10%' });
+  return (
+    <section className="relative bg-[#F8FAFC] py-28 lg:py-36 overflow-hidden">
+      <LightGrid />
+      <div ref={ref} className="relative z-10"><Wrap>
+        <motion.div variants={stagger()} initial="hidden" animate={inView ? 'visible' : 'hidden'}>
+          <motion.div variants={fadeUp}><ChLabel number="03" title="Comprehensive Holter Analysis" light /></motion.div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start">
+            <div>
+              <motion.h2 variants={fadeUp} className="text-5xl lg:text-[3.5rem] font-black text-slate-900 leading-none tracking-tight mb-6">24–48 hours.<br /><span className="text-[#1A6BFF]">Every beat.<br />Documented.</span></motion.h2>
+              <motion.p variants={fadeUp} className="text-lg text-slate-500 leading-relaxed mb-8">Using a <strong className="text-slate-900">dedicated separate Holter recorder</strong>, patients wear the device for 24–48 hours. CardioX then provides full ambulatory ECG analysis — beat clustering, ST mapping, HRV, and clinical reports.</motion.p>
+              <motion.div variants={fadeUp} className="rounded-2xl bg-[#1A6BFF]/5 border border-[#1A6BFF]/15 p-6 mb-8">
+                <div className="font-bold text-slate-900 mb-2">Dedicated Holter Hardware Recorder</div>
+                <p className="text-sm text-slate-500 leading-relaxed">A compact wearable recorder — separate from Rhythm UltraMax — worn continuously, capturing ambulatory ECG data across daily activity, sleep, and exertion.</p>
+              </motion.div>
+              <motion.div variants={stagger()} className="space-y-3 mb-8">
+                {[{ icon: Clock, t: '24–48 hour continuous ambulatory recording' }, { icon: BarChart3, t: 'Beat template clustering — VE/SVE classification' }, { icon: Activity, t: 'Lorenz scatter plots & full HRV analysis' }, { icon: FileText, t: 'ST segment mapping and event detection' }, { icon: Brain, t: 'Multi-page comprehensive Holter report' }].map(({ icon: Icon, t }) => (
+                  <motion.div key={t} variants={fadeUp} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-[#1A6BFF]/8 flex items-center justify-center flex-shrink-0"><Icon className="h-4 w-4 text-[#1A6BFF]" /></div>
+                    <span className="text-slate-600 text-sm">{t}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+              <motion.div variants={fadeUp}>
+                <DownloadSpecButton productId="holter" light={true} />
+              </motion.div>
+            </div>
+            <motion.div variants={slideRight} className="space-y-4">
+              <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-xl"><img src={holterHwImg} alt="Holter Hardware" className="w-full h-[270px] object-contain p-4" /></div>
+              <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-xl"><img src={holterSoftImg} alt="Holter Software" className="w-full h-[250px] object-contain p-4" /></div>
+              <p className="text-center text-xs text-slate-400">CardioX · Comprehensive ECG Analysis Module</p>
+            </motion.div>
+          </div>
+        </motion.div>
+      </Wrap></div>
+    </section>
+  );
+};
+
+// 12 Channel ECG Tabletop
+const Chapter12ChannelECG = () => (
+  <ProductSection
+    productId="12ch-ecg"
+    number="04" label="12 Channel ECG · Hospital Tabletop Diagnostic System"
+    title="Hospital-grade 12-lead ECG.<br/><span style='color:#1A6BFF'>Built for the clinic.</span>"
+    accentColor="#1A6BFF"
+    description="A full-featured 12-channel tabletop ECG system designed for hospital diagnostic labs, cardiology departments, and advanced outpatient clinics. Purpose-built for structured clinical workflows with high-clarity display, auto-analysis, and network reporting."
+    image={ecg12ChImg} imageAlt="12 Channel ECG Tabletop"
+    specs={[
+      ['Lead configuration', '12-lead simultaneous ECG'],
+      ['Display', 'Large integrated clinical display'],
+      ['Analysis', 'Automated ECG interpretation'],
+      ['Report format', 'PDF / thermal print'],
+      ['Connectivity', 'LAN · Wi-Fi · USB'],
+      ['Data storage', 'Internal patient record storage'],
+    ]}
+    pills={['Cardiology Dept', 'Diagnostic Lab', 'Advanced OPD', 'Referral Hospital']}
+    dark reverse
+  />
+);
+
+// 3 Channel ECG
+const Chapter3ChannelECG = () => (
+  <ProductSection
+    productId="3ch-ecg"
+    number="05" label="3 Channel ECG · Entry-Level Clinical ECG"
+    title="Fast, reliable ECG<br/><span style='color:#1A6BFF'>for every clinic.</span>"
+    accentColor="#1A6BFF"
+    description="Entry-level 3-channel ECG system optimized for quick acquisition and connected reporting in smaller clinics and general practices. Simple operation, fast results, and clinician-friendly output — designed for high patient volume settings."
+    image={ecg3ChImg} imageAlt="3 Channel ECG"
+    features={[
+      { icon: Activity, title: '3-channel simultaneous acquisition', body: 'Efficient 3-lead ECG capture for rapid clinical screening and routine cardiac checks.' },
+      { icon: FileText, title: 'Quick automated reporting', body: 'Clean, printable ECG reports with automated rhythm labeling for fast clinical decisions.' },
+      { icon: Monitor, title: 'Built-in display', body: 'Clear onboard LCD display for immediate waveform review at the point of care.' },
+      { icon: Wifi, title: 'Connectivity and sharing', body: 'USB and network connectivity for digital report storage and sharing with specialists.' },
+    ]}
+    pills={['General Practice', 'Primary Care', 'Small Clinics', 'Health Camps']}
+    dark={false}
+  />
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RESPIRATORY DEVICES
+// ═══════════════════════════════════════════════════════════════════════════════
+const ChapterBiPAP = () => (
+  <ProductSection
+    productId="bipap"
+    id="respiratory"
+    number="06" label="BiPAP · Bilevel Positive Airway Pressure"
+    title="Respiratory support,<br/><span style='color:#00D4AA'>precisely calibrated.</span>"
+    accentColor="#00D4AA"
+    description="Advanced bilevel positive airway pressure therapy system for sleep apnea management and respiratory support. Smooth pressure transitions, quiet operation, and comprehensive therapy data tracking for both hospital and home use."
+    image={bipapImg} imageAlt="BiPAP Respiratory Device"
+    specs={[
+      ['Pressure range', '4–25 cmH₂O (IPAP / EPAP)'],
+      ['Therapy modes', 'S · T · S/T · CPAP'],
+      ['Humidification', 'Integrated heated humidifier'],
+      ['Ramp time', '0–45 minutes configurable'],
+      ['Data export', 'Smart card / USB export'],
+      ['Alarm system', 'Apnea · Low pressure · Power failure'],
+    ]}
+    pills={['Sleep Apnea', 'Respiratory Therapy', 'Home Care', 'Hospital Ward']}
+    dark reverse
+  />
+);
+
+const ChapterSleepSense = () => (
+  <ProductSection
+    productId="sleepsense"
+    number="07" label="SleepSense · Sleep Diagnostic Monitor"
+    title="Understand sleep.<br/><span style='color:#00D4AA'>Diagnose better.</span>"
+    accentColor="#00D4AA"
+    description="Comprehensive ambulatory sleep monitoring system for overnight screening and diagnosis of sleep disorders. Tracks SpO₂, airflow, body position, chest and abdominal respiratory effort, and snoring for complete sleep study analysis."
+    image={sleepSenseImg} imageAlt="SleepSense Sleep Monitor"
+    features={[
+      { icon: Moon, title: 'Multi-channel overnight monitoring', body: 'Simultaneously records SpO₂, airflow, body position, effort, and snoring through a comfortable wearable setup.' },
+      { icon: BarChart3, title: 'AHI and event analysis', body: 'Automated calculation of Apnea-Hypopnea Index, RDI, and ODI for clinical sleep disorder classification.' },
+      { icon: Clock, title: '12-hour recording capacity', body: 'Full night ambulatory recording with reliable data capture across sleep stages and position changes.' },
+      { icon: FileText, title: 'Clinical sleep report', body: 'Comprehensive, clinician-ready sleep study report with visual event maps and severity scoring.' },
+    ]}
+    pills={['Sleep Lab', 'Sleep Apnea Screening', 'Home Sleep Testing', 'Pulmonology']}
+    dark={false}
+  />
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VENTILATION
+// ═══════════════════════════════════════════════════════════════════════════════
+const ChapterVentilators = () => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-10%' });
+  const specs60 = [
+    ['Model', 'VT60ST Transport Ventilator'],
+    ['Ventilation modes', 'VCV · PCV · SIMV · CPAP · PEEP'],
+    ['Tidal volume', '50–2000 mL'],
+    ['Respiratory rate', '1–60 bpm'],
+    ['PEEP', '0–20 cmH₂O'],
+    ['Power', 'AC mains + Internal battery'],
+  ];
+  const specs80 = [
+    ['Model', 'VT80ST ICU / Advanced Ventilator'],
+    ['Ventilation modes', 'VCV · PCV · PRVC · SIMV · BiPAP · CPAP'],
+    ['Tidal volume', '20–2500 mL'],
+    ['Respiratory rate', '1–80 bpm'],
+    ['PEEP', '0–25 cmH₂O'],
+    ['Power', 'AC mains + Extended battery'],
+  ];
+  return (
+    <section id="ventilators" className="relative bg-[#050A14] py-28 lg:py-36 overflow-hidden">
+      <GridBg />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 100%,rgba(249,115,22,.05) 0%,transparent 60%)' }} />
+      <div ref={ref} className="relative z-10"><Wrap>
+        <motion.div variants={stagger()} initial="hidden" animate={inView ? 'visible' : 'hidden'}>
+          <motion.div variants={fadeUp}><ChLabel number="08" title="VT60ST / VT80ST · Ventilators" /></motion.div>
+          <motion.h2 variants={fadeUp} className="text-5xl lg:text-[3.5rem] font-black text-white leading-none tracking-tight mb-5 max-w-3xl">
+            Precision ventilation.
+            <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F97316] to-[#FB923C]">Wherever care demands.</span>
+          </motion.h2>
+          <motion.p variants={fadeUp} className="text-xl text-slate-400 mb-16 max-w-2xl leading-relaxed">
+            The VT60ST and VT80ST deliver reliable, precision ventilation for ICU, transport, and emergency settings. Robust construction, comprehensive alarms, and multiple ventilation modes.
+          </motion.p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* VT60ST */}
+            <motion.div variants={slideLeft} className="rounded-3xl overflow-hidden bg-gradient-to-br from-[#0A1428] to-[#050A14] border border-white/[.06] shadow-2xl">
+              <div className="relative">
+                <img src={vt60stImg} alt="VT60ST" className="w-full h-[300px] object-contain p-4 opacity-85" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] to-transparent" />
+                <div className="absolute top-4 left-4 px-2 py-1 rounded-full" style={{ background: 'rgba(249,115,22,.15)', border: '1px solid rgba(249,115,22,.3)' }}>
+                  <span className="text-[9px] font-black text-[#F97316] tracking-widest uppercase">Transport</span>
+                </div>
+              </div>
+              <div className="p-7">
+                <div className="text-[10px] font-black tracking-widest text-[#F97316] uppercase mb-2">VT60ST</div>
+                <h3 className="text-2xl font-black text-white mb-3">Transport Ventilator</h3>
+                <p className="text-slate-400 text-sm leading-relaxed mb-5">Compact and robust transport ventilator for ICU-to-ICU transfers, ambulance transport, and emergency response. Dual power source with comprehensive alarm coverage.</p>
+                <div className="space-y-0">{specs60.map(([l, v]) => <SpecRow key={l} label={l} value={v} />)}</div>
+                <div className="flex flex-wrap gap-2 mt-5 mb-6">
+                  {['ICU Transport', 'Ambulance', 'Emergency', 'Post-Op'].map(p => <Pill key={p}>{p}</Pill>)}
+                </div>
+                <DownloadSpecButton productId="vt60st" light={false} />
+              </div>
+            </motion.div>
+            {/* VT80ST */}
+            <motion.div variants={slideRight} className="rounded-3xl overflow-hidden bg-gradient-to-br from-[#0A1428] to-[#050A14] border border-white/[.06] shadow-2xl">
+              <div className="relative">
+                <img src={vt80stImg} alt="VT80ST" className="w-full h-[300px] object-contain p-4 opacity-85" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] to-transparent" />
+                <div className="absolute top-4 left-4 px-2 py-1 rounded-full" style={{ background: 'rgba(249,115,22,.15)', border: '1px solid rgba(249,115,22,.3)' }}>
+                  <span className="text-[9px] font-black text-[#F97316] tracking-widest uppercase">ICU / Advanced</span>
+                </div>
+              </div>
+              <div className="p-7">
+                <div className="text-[10px] font-black tracking-widest text-[#F97316] uppercase mb-2">VT80ST</div>
+                <h3 className="text-2xl font-black text-white mb-3">ICU / Advanced Ventilator</h3>
+                <p className="text-slate-400 text-sm leading-relaxed mb-5">Advanced ICU ventilator with expanded mode range including PRVC and BiPAP modes. Designed for complex respiratory management in critical care units.</p>
+                <div className="space-y-0">{specs80.map(([l, v]) => <SpecRow key={l} label={l} value={v} />)}</div>
+                <div className="flex flex-wrap gap-2 mt-5 mb-6">
+                  {['ICU', 'Critical Care', 'Neonatal', 'Adult & Paediatric'].map(p => <Pill key={p}>{p}</Pill>)}
+                </div>
+                <DownloadSpecButton productId="vt80st" light={false} />
+              </div>
+            </motion.div>
+          </div>
+          {/* shared features */}
+          <motion.div variants={fadeUp} className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[{ icon: Shield, t: 'Comprehensive Alarms', b: 'Apnea, high/low pressure, disconnect, power failure' }, { icon: Battery, t: 'Dual Power', b: 'AC mains + internal battery backup' }, { icon: Gauge, t: 'Multiple Modes', b: 'Volume, pressure, and spontaneous ventilation' }, { icon: Activity, t: 'Real-time Monitoring', b: 'Waveform display, loops, and trend tracking' }].map(({ icon: Icon, t, b }) => (
+              <div key={t} className="rounded-2xl bg-white/[.03] border border-white/[.06] p-5">
+                <div className="w-9 h-9 rounded-xl bg-[#F97316]/10 flex items-center justify-center mb-3"><Icon className="h-4 w-4 text-[#F97316]" /></div>
+                <div className="font-bold text-white text-sm mb-1">{t}</div>
+                <p className="text-slate-400 text-xs leading-relaxed">{b}</p>
+              </div>
+            ))}
+          </motion.div>
+        </motion.div>
+      </Wrap></div>
+    </section>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════════════════════════════════
+const StatsRow = () => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-10%' });
+  const v1 = useCountUp(1000, inView, 1.6);
+  const v2 = useCountUp(30, inView, 1.4);
+  const v3 = useCountUp(48, inView, 1.5);
+  const v4 = useCountUp(8, inView, 1.3);
+  const stats = [
+    { val: v1, suf: '', unit: 'SPS', label: 'per channel ECG acquisition', icon: Zap, color: '#1A6BFF' },
+    { val: v2, suf: '+', unit: '', label: 'arrhythmia detection tools', icon: Activity, color: '#00D4AA' },
+    { val: v3, suf: ' hr', unit: 'Max', label: 'ambulatory Holter recording', icon: Clock, color: '#1A6BFF' },
+    { val: v4, suf: ' hr', unit: '', label: 'continuous ECG battery life', icon: Battery, color: '#00D4AA' },
+  ];
+  return (
+    <section className="relative bg-[#F8FAFC] py-24 overflow-hidden">
+      <LightGrid />
+      <div ref={ref} className="relative z-10"><Wrap>
+        <motion.div variants={stagger()} initial="hidden" animate={inView ? 'visible' : 'hidden'}>
+          <motion.div variants={fadeUp} className="text-center mb-14">
+            <ChLabel title="By the Numbers" light />
+            <h2 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">Clinical precision, measured.</h2>
+          </motion.div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            {stats.map(({ val, suf, unit, label, icon: Icon, color }) => (
+              <motion.div key={label} variants={scaleIn} className="text-center p-7 rounded-3xl bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:shadow-slate-200/60 transition-all duration-500">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ background: `${color}10` }}><Icon className="h-5 w-5" style={{ color }} /></div>
+                <div className="text-4xl lg:text-5xl font-black text-slate-900 leading-none mb-2 tracking-tight">
+                  {unit && <span style={{ color }}>{unit}</span>}{val}{suf}
+                </div>
+                <div className="text-sm text-slate-500 leading-snug">{label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </Wrap></div>
+    </section>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLOSING
+// ═══════════════════════════════════════════════════════════════════════════════
+const Closing = () => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-10%' });
+  return (
+    <section className="relative bg-[#050A14] py-28 lg:py-40 overflow-hidden">
+      <GridBg />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 80%,rgba(26,107,255,.09) 0%,transparent 60%)' }} />
+      <div ref={ref} className="relative z-10"><Wrap>
+        <motion.div variants={stagger()} initial="hidden" animate={inView ? 'visible' : 'hidden'} className="text-center">
+          <motion.div variants={fadeUp} className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/[.04] border border-white/[.08] mb-12">
+            <PulsingDot color="#00D4AA" size={5} />
+            <span className="text-xs font-semibold text-slate-400 tracking-[.15em] uppercase">Complete Clinical Ecosystem</span>
+          </motion.div>
+          <motion.h2 variants={fadeUp} className="text-5xl lg:text-[5.5rem] font-black text-white leading-none tracking-tight max-w-5xl mx-auto mb-10">
+            From portable ECG to precision ventilation —
+            <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1A6BFF] via-[#4D8FFF] to-[#00D4AA]">Deckmount delivers.</span>
+          </motion.h2>
+          <motion.p variants={fadeUp} className="text-xl text-slate-500 max-w-3xl mx-auto mb-16 leading-relaxed">
+            Eight clinical-grade medical devices across ECG acquisition, respiratory therapy, and critical care ventilation — engineered for Indian healthcare, built to international standards.
+          </motion.p>
+          <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+            {['IEC 60601 Compliant Design', 'AI-Assisted Clinical Reporting', 'Offline-First ECG Architecture', '24-bit ADC Precision', '24–48 hr Holter Monitoring', 'ICU & Transport Ventilation'].map(item => (
+              <div key={item} className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-[#00D4AA] flex-shrink-0" />
+                <span className="text-slate-400 text-sm">{item}</span>
+              </div>
+            ))}
+          </motion.div>
+        </motion.div>
+      </Wrap></div>
+    </section>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FOOTER
+// ═══════════════════════════════════════════════════════════════════════════════
+const Footer = () => (
+  <footer className="bg-[#030710] border-t border-white/[.04] py-10">
+    <Wrap>
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1A6BFF] to-[#00D4AA] flex items-center justify-center"><Activity className="h-4 w-4 text-white" /></div>
+          <div className="leading-none">
+            <div className="text-[11px] font-black tracking-[.25em] text-white uppercase">Deckmount Electronics</div>
+            <div className="text-[9px] text-slate-600 tracking-[.2em] uppercase mt-0.5">Clinical Device Innovation · India</div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2">
+          {['Rhythm UltraMax', 'CardioX', '12Ch ECG', '3Ch ECG', 'BiPAP', 'SleepSense', 'VT60ST', 'VT80ST'].map(p => (
+            <a key={p} href="#" className="text-xs text-slate-700 hover:text-slate-400 transition-colors">{p}</a>
+          ))}
+        </div>
+        <div className="text-xs text-slate-800">© 2026 Deckmount Electronics · India Roadshow</div>
+      </div>
+    </Wrap>
+  </footer>
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// APP ROOT
+// ═══════════════════════════════════════════════════════════════════════════════
+export default function App() {
+  return (
+    <div className="font-sans antialiased">
+      <NavBar />
+      <Hero />
+      <ProductsOverview />
+
+      {/* ECG Suite */}
+      <CategoryBanner badge="Product Family 01" heading="ECG Suite" sub="From portable field acquisition to comprehensive desktop analysis and long-term Holter monitoring." color="#1A6BFF" />
+      <EcosystemOverview />
+      <ChapterUltraMax />
+      <HowItConnects />
+      <ChapterCardioX />
+      <ChapterHolter />
+      <Chapter12ChannelECG />
+      <Chapter3ChannelECG />
+
+      {/* Respiratory */}
+      <CategoryBanner badge="Product Family 02" heading="Respiratory" sub="Advanced therapy and diagnostic devices for sleep apnea management and respiratory support." color="#00D4AA" />
+      <ChapterBiPAP />
+      <ChapterSleepSense />
+
+      {/* Ventilation */}
+      <CategoryBanner badge="Product Family 03" heading="Ventilation" sub="Transport and ICU ventilators engineered for precision respiratory support in critical care." color="#F97316" />
+      <ChapterVentilators />
+
+      <StatsRow />
+      <Closing />
+      <Footer />
+    </div>
   );
 }
-
-export default App;
